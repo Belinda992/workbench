@@ -14,7 +14,7 @@
   /* 七彩主题色：红橙黄绿蓝靛紫 */
   --c-red: #e25656;    --c-red-soft: #fdecec;
   --c-orange: #ef8b3a; --c-orange-soft: #fdf0e3;
-  --c-yellow: #c9a227; --c-yellow-soft: #fbf4dc;
+  --c-yellow: #f7c200; --c-yellow-soft: #fff7d6;
   --c-green: #2e9e5e;  --c-green-soft: #e7f5ec;
   --c-blue: #3a7bd5;   --c-blue-soft: #e8f0fb;
   --c-indigo: #5b5bd6; --c-indigo-soft: #ecebfc;
@@ -86,6 +86,8 @@ body {
 .nav-item[data-color="red"].active    { background: var(--c-red); }
 .nav-item[data-color="orange"].active { background: var(--c-orange); }
 .nav-item[data-color="yellow"].active { background: var(--c-yellow); }
+.nav-item[data-color="yellow"].active .nav-ico,
+.nav-item[data-color="yellow"].active .nav-label { color: #5a4500; }
 .nav-item[data-color="green"].active  { background: var(--c-green); }
 .nav-item[data-color="blue"].active   { background: var(--c-blue); }
 .nav-item[data-color="indigo"].active { background: var(--c-indigo); }
