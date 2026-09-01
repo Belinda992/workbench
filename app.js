@@ -177,11 +177,6 @@ function toast(msg) {
   t._t = setTimeout(() => t.classList.remove("show"), 1600);
 }
 
-// ---------- 顶部问候 ----------
-(function initTop() {
-  $("#greeting").textContent = "映记";
-})();
-
 // ---------- 导航切换 ----------
 $$("#nav .nav-item").forEach((btn) => {
   btn.addEventListener("click", () => {
