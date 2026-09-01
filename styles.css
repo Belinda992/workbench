@@ -261,14 +261,11 @@ body {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* 窄屏：七个主题仍固定在最左侧，收缩成图标竖栏 */
+/* 窄屏：七个主题仍固定在最左侧，文字常驻显示 */
 @media (max-width: 720px) {
-  .sidebar { width: 64px; padding: 14px 8px; }
-  .brand { justify-content: center; margin-bottom: 20px; }
-  .brand-text { display: none; }
-  .nav-item { justify-content: center; padding: 12px 0; gap: 0; }
-  .nav-label { display: none; }
-  .sidebar-foot { display: none; }
+  .sidebar { width: 140px; padding: 14px 10px; }
+  .brand { justify-content: flex-start; margin-bottom: 20px; }
+  .nav-item { justify-content: flex-start; padding: 11px 10px; gap: 9px; }
   .content { padding: 18px 14px; }
   .daily-banner { margin: 14px 14px 0; }
 }
