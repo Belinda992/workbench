@@ -83,15 +83,38 @@
         <!-- 今日待办（红） -->
         <div class="view active" id="view-todo">
           <h2 class="view-title c-red">⏰ 今日待办</h2>
-                    <div class="notes-layout">
+          <div class="notes-layout">
+            <!-- 三只青蛙 -->
             <div class="card">
-              <div class="card-head">✅ 待办清单 <span class="muted" id="todoCount"></span></div>
+              <div class="card-head">🐸 三只青蛙 <span class="muted" id="frogCount"></span></div>
+              <form class="add-row" id="frogForm">
+                <input id="frogInput" placeholder="今天最重要的三件事…" autocomplete="off" />
+                <button type="submit">＋</button>
+              </form>
+              <ul class="todo-list" id="frogList"></ul>
+            </div>
+            <!-- 其他待办 -->
+            <div class="card">
+              <div class="card-head">📝 其他待办 <span class="muted" id="todoCount"></span></div>
               <form class="add-row" id="todoForm">
                 <input id="todoInput" placeholder="添加一项待办…" autocomplete="off" />
                 <button type="submit">＋</button>
               </form>
               <ul class="todo-list" id="todoList"></ul>
             </div>
+            <!-- 六时书 -->
+            <div class="card card-wide">
+              <div class="card-head">🕐 六时书 · 一日六时记录</div>
+              <div class="sixbook">
+                <div class="six-slot"><label>🌅 清晨 6–9</label><textarea id="six0" placeholder="这一时段的要事 / 感悟…"></textarea></div>
+                <div class="six-slot"><label>☀️ 上午 9–12</label><textarea id="six1" placeholder="这一时段的要事 / 感悟…"></textarea></div>
+                <div class="six-slot"><label>🍱 午后 12–15</label><textarea id="six2" placeholder="这一时段的要事 / 感悟…"></textarea></div>
+                <div class="six-slot"><label>🌤️ 下午 15–18</label><textarea id="six3" placeholder="这一时段的要事 / 感悟…"></textarea></div>
+                <div class="six-slot"><label>🌆 傍晚 18–21</label><textarea id="six4" placeholder="这一时段的要事 / 感悟…"></textarea></div>
+                <div class="six-slot"><label>🌙 夜晚 21–24</label><textarea id="six5" placeholder="这一时段的要事 / 感悟…"></textarea></div>
+              </div>
+            </div>
+            <!-- 随手笔记 -->
             <div class="card">
               <div class="card-head">📒 随手笔记</div>
               <textarea id="noteArea" placeholder="记点什么…（自动保存）"></textarea>

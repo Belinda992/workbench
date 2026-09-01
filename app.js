@@ -284,6 +284,41 @@ function barChart() {
 }
 $("#chartBar").innerHTML = barChart();
 
+// ---------- 三只青蛙 ----------
+let frogs = store.get("wb_frogs", []);
+function renderFrogs() {
+  $("#frogList").innerHTML = frogs.map((t) => `
+    <li class="todo-item frog ${t.done ? "done" : ""}" data-id="${t.id}">
+      <input class="todo-check" type="checkbox" ${t.done ? "checked" : ""}/>
+      <span class="todo-text">${t.text}</span>
+      <button class="todo-del">✕</button>
+    </li>`).join("");
+  const done = frogs.filter((t) => t.done).length;
+  $("#frogCount").textContent = `（已吃 ${done}/3 只）`;
+  const full = frogs.length >= 3;
+  $("#frogInput").disabled = full;
+  $("#frogInput").placeholder = full ? "今天的三只青蛙已排满 🐸" : "今天最重要的三件事…";
+  $$("#frogList .todo-item").forEach((li) => {
+    const id = +li.dataset.id;
+    li.querySelector(".todo-check").addEventListener("change", () => {
+      const t = frogs.find((x) => x.id === id); t.done = !t.done; saveFrogs();
+    });
+    li.querySelector(".todo-del").addEventListener("click", () => {
+      frogs = frogs.filter((x) => x.id !== id); saveFrogs();
+    });
+  });
+}
+function saveFrogs() { store.set("wb_frogs", frogs); renderFrogs(); }
+$("#frogForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (frogs.length >= 3) { toast("三只青蛙已排满，先吃完一只再添 🐸"); return; }
+  const v = $("#frogInput").value.trim();
+  if (!v) return;
+  frogs.push({ id: Date.now(), text: v, done: false });
+  $("#frogInput").value = ""; saveFrogs();
+});
+renderFrogs();
+
 // ---------- 待办 ----------
 let todos = store.get("wb_todos", [
   { id: 1, text: "示例：阅读 WorkBuddy 部署文档", done: false },
@@ -322,6 +357,14 @@ renderTodos();
 const noteArea = $("#noteArea");
 noteArea.value = store.get("wb_note", "");
 noteArea.addEventListener("input", () => store.set("wb_note", noteArea.value));
+
+// ---------- 六时书 ----------
+for (let i = 0; i < 6; i++) {
+  const el = $("#six" + i);
+  if (!el) continue;
+  el.value = store.get("wb_six_" + i, "");
+  el.addEventListener("input", () => store.set("wb_six_" + i, el.value));
+}
 
 // ---------- 知识库 ----------
 let kbs = store.get("wb_kb", [
