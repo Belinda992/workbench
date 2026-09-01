@@ -437,6 +437,7 @@ body {
 }
 .modal-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
 .modal-card .muted { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+.modal-card label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
 .modal-card input[type=password], .modal-card textarea {
   width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
   font-size: 14px; font-family: inherit; color: var(--text); margin-bottom: 14px;

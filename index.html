@@ -653,8 +653,11 @@
   <div class="modal" id="syncModal" style="display:none;">
     <div class="modal-card">
       <div class="modal-title">连接云端同步</div>
-      <p class="muted">输入你的同步密码（需与云端服务器的 sync.config.json 中的 token 一致）。连接后，数据会保存在云端，任意电脑登录同一密码即可编辑同一份数据。</p>
-      <input id="syncPwd" type="password" placeholder="同步密码" autocomplete="off" />
+      <p class="muted">用 GitHub Gist 免费保存数据，零服务器。任意设备打开这个链接、输入同一个 GitHub 令牌即可编辑同一份数据。<br>获取令牌：GitHub → Settings → Developer settings → Personal Access Tokens → 勾选 <b>gist</b> 权限生成。</p>
+      <label>GitHub 访问令牌（Token）</label>
+      <input id="syncPwd" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" />
+      <label>Gist ID（可选，首次留空自动创建）</label>
+      <input id="syncGistId" placeholder="留空将自动新建一个私密 Gist" autocomplete="off" />
       <div class="modal-actions">
         <button class="btn ghost" id="syncCancel">取消</button>
         <button class="btn" id="syncSubmit">连接</button>

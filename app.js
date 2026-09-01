@@ -5,7 +5,9 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 // ---------- 云端同步层 ----------
 const SYNC = {
+  mode: localStorage.getItem("wb_sync_mode") || "gist", // gist | node
   token: localStorage.getItem("wb_sync_token") || "",
+  gistId: localStorage.getItem("wb_gist_id") || "",
   base: location.pathname.replace(/\/[^/]*$/, "") + "/api",
   pushTimer: null,
 };
@@ -25,15 +27,82 @@ function schedulePush() {
   clearTimeout(SYNC.pushTimer);
   SYNC.pushTimer = setTimeout(pushAll, 800);
 }
-async function pushAll() {
-  if (!SYNC.token) return;
+function collectBlob() {
   const blob = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith("wb_") && k !== "wb_sync_token") {
+    if (k && k.startsWith("wb_") && k !== "wb_sync_token" && k !== "wb_gist_id" && k !== "wb_sync_mode") {
       try { blob[k] = JSON.parse(localStorage.getItem(k)); } catch (_) {}
     }
   }
+  return blob;
+}
+function applyBlob(blob) {
+  const keys = Object.keys(blob || {});
+  if (!keys.length) return false;
+  keys.forEach((k) => {
+    if (k.startsWith("wb_") && k !== "wb_sync_token") {
+      try { localStorage.setItem(k, JSON.stringify(blob[k])); } catch (_) {}
+    }
+  });
+  return true;
+}
+// ---- GitHub Gist 后端（零服务器，跨设备同步） ----
+async function gistError(r) {
+  if (r.status === 401) setSyncStatus("err", "令牌无效");
+  else if (r.status === 403) setSyncStatus("err", "无 gist 权限");
+  else setSyncStatus("off", "未连接");
+}
+async function gistPush(blob) {
+  const content = JSON.stringify(blob);
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + SYNC.token,
+    "Accept": "application/vnd.github+json",
+  };
+  try {
+    if (!SYNC.gistId) {
+      const r = await fetch("https://api.github.com/gists", {
+        method: "POST", headers,
+        body: JSON.stringify({ public: false, files: { "wb_store.json": { content } } }),
+      });
+      if (r.ok) {
+        const j = await r.json();
+        SYNC.gistId = j.id;
+        localStorage.setItem("wb_gist_id", j.id);
+        setSyncStatus("synced", "已同步云端");
+        return;
+      }
+      gistError(r); return;
+    }
+    const r = await fetch("https://api.github.com/gists/" + SYNC.gistId, {
+      method: "PATCH", headers,
+      body: JSON.stringify({ files: { "wb_store.json": { content } } }),
+    });
+    if (r.ok) setSyncStatus("synced", "已同步云端");
+    else gistError(r);
+  } catch (_) { setSyncStatus("off", "未连接"); }
+}
+async function gistPull() {
+  if (!SYNC.gistId) { await gistPush(collectBlob()); return true; }
+  try {
+    const r = await fetch("https://api.github.com/gists/" + SYNC.gistId, {
+      headers: { "Authorization": "Bearer " + SYNC.token, "Accept": "application/vnd.github+json" },
+    });
+    if (!r.ok) { gistError(r); return false; }
+    const j = await r.json();
+    const file = j.files && j.files["wb_store.json"];
+    if (file && file.content) {
+      const blob = JSON.parse(file.content);
+      if (!applyBlob(blob)) await gistPush(collectBlob());
+    } else {
+      await gistPush(collectBlob());
+    }
+    return true;
+  } catch (_) { setSyncStatus("off", "未连接"); return false; }
+}
+// ---- 自建 Node 后端（兼容保留） ----
+async function nodePush(blob) {
   try {
     const r = await fetch(SYNC.base + "/data", {
       method: "POST",
@@ -45,26 +114,26 @@ async function pushAll() {
     else setSyncStatus("off", "未连接");
   } catch (_) { setSyncStatus("off", "未连接"); }
 }
-async function syncPull() {
+async function nodePull() {
   try {
     const r = await fetch(SYNC.base + "/data", { headers: { "X-WB-Token": SYNC.token } });
-    if (!r.ok) {
-      setSyncStatus(r.status === 401 ? "err" : "off", r.status === 401 ? "密码错误" : "未连接");
-      return false;
-    }
+    if (!r.ok) { setSyncStatus(r.status === 401 ? "err" : "off", r.status === 401 ? "密码错误" : "未连接"); return false; }
     const blob = await r.json();
-    const keys = Object.keys(blob || {});
-    if (keys.length) {
-      keys.forEach((k) => {
-        if (k.startsWith("wb_") && k !== "wb_sync_token") {
-          try { localStorage.setItem(k, JSON.stringify(blob[k])); } catch (_) {}
-        }
-      });
-    } else {
-      await pushAll(); // 首次使用：把本地数据上传
-    }
+    if (Object.keys(blob || {}).length) applyBlob(blob);
+    else await nodePush(collectBlob());
     return true;
   } catch (_) { setSyncStatus("off", "未连接"); return false; }
+}
+// ---- 统一入口 ----
+async function pushAll() {
+  if (!SYNC.token) return;
+  const blob = collectBlob();
+  if (SYNC.mode === "gist") await gistPush(blob);
+  else await nodePush(blob);
+}
+async function syncPull() {
+  if (SYNC.mode === "gist") return await gistPull();
+  return await nodePull();
 }
 // 云端数据覆盖本地后，统一重渲染一次
 function rerenderAll() {
@@ -345,15 +414,20 @@ function openSyncLogin() {
   const p = $("#syncPwd"); if (p) { p.value = ""; p.focus(); }
 }
 async function submitSyncLogin() {
-  const pwd = ($("#syncPwd")?.value || "").trim();
-  if (!pwd) return;
-  SYNC.token = pwd;
-  localStorage.setItem("wb_sync_token", pwd);
+  const token = ($("#syncPwd")?.value || "").trim();
+  if (!token) return;
+  const gid = ($("#syncGistId")?.value || "").trim();
+  SYNC.mode = "gist";
+  SYNC.token = token;
+  SYNC.gistId = gid;
+  localStorage.setItem("wb_sync_mode", "gist");
+  localStorage.setItem("wb_sync_token", token);
+  if (gid) localStorage.setItem("wb_gist_id", gid); else localStorage.removeItem("wb_gist_id");
   const m = $("#syncModal"); if (m) m.style.display = "none";
   showOverlay("正在连接云端…");
   const ok = await syncPull();
   if (ok) { rerenderAll(); toast("云端连接成功 ✅"); }
-  else toast("密码错误或无法连接");
+  else toast("令牌无效或无法连接 GitHub");
   hideOverlay();
 }
 function logoutSync() {
