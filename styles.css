@@ -232,12 +232,25 @@ body {
 .sixbook { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .six-slot { display: flex; flex-direction: column; gap: 6px; }
 .six-slot label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
-.six-slot textarea {
-  min-height: 64px; border: 1px solid var(--line); border-radius: 9px;
-  padding: 9px 11px; font-size: 13px; font-family: inherit; resize: vertical;
-  outline: none; line-height: 1.6;
+.six-slot textarea,
+.six-slot select.six-seed,
+.six-slot input.six-note {
+  width: 100%; border: 1px solid var(--line); border-radius: 9px;
+  padding: 9px 11px; font-size: 13px; font-family: inherit;
+  outline: none; line-height: 1.6; background: #fff; color: var(--text);
 }
-.six-slot textarea:focus { border-color: var(--brand); }
+.six-slot textarea { min-height: 64px; resize: vertical; }
+.six-slot select.six-seed { cursor: pointer; }
+.six-slot textarea:focus,
+.six-slot select.six-seed:focus,
+.six-slot input.six-note:focus { border-color: var(--brand); }
+.frog-rows { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.frog-rows .frog-input {
+  flex: 1; padding: 9px 11px; border: 1px solid var(--line);
+  border-radius: 9px; font-size: 13px; font-family: inherit; outline: none;
+}
+.frog-rows .frog-input:focus { border-color: var(--brand); }
+.frog.done .frog-input { text-decoration: line-through; color: var(--muted); }
 .frog.done .todo-text { color: var(--c-green, #2e9e5e); }
 .kb-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; }
 .kb-item a { flex: 1; color: var(--brand); text-decoration: none; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

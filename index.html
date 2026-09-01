@@ -87,11 +87,11 @@
             <!-- 三只青蛙 -->
             <div class="card">
               <div class="card-head">🐸 三只青蛙 <span class="muted" id="frogCount"></span></div>
-              <form class="add-row" id="frogForm">
-                <input id="frogInput" placeholder="今天最重要的三件事…" autocomplete="off" />
-                <button type="submit">＋</button>
-              </form>
-              <ul class="todo-list" id="frogList"></ul>
+              <ul class="frog-rows" id="frogRows">
+                <li class="todo-item frog" data-i="0"><input class="todo-check" type="checkbox" data-i="0" /><input class="frog-input" type="text" data-i="0" placeholder="第一只青蛙：今天最要紧的事" /></li>
+                <li class="todo-item frog" data-i="1"><input class="todo-check" type="checkbox" data-i="1" /><input class="frog-input" type="text" data-i="1" placeholder="第二只青蛙：今天最要紧的事" /></li>
+                <li class="todo-item frog" data-i="2"><input class="todo-check" type="checkbox" data-i="2" /><input class="frog-input" type="text" data-i="2" placeholder="第三只青蛙：今天最要紧的事" /></li>
+              </ul>
             </div>
             <!-- 其他待办 -->
             <div class="card">
@@ -104,14 +104,14 @@
             </div>
             <!-- 六时书 -->
             <div class="card card-wide">
-              <div class="card-head">🕐 六时书 · 一日六时记录</div>
-              <div class="sixbook">
-                <div class="six-slot"><label>🌅 清晨 6–9</label><textarea id="six0" placeholder="这一时段的要事 / 感悟…"></textarea></div>
-                <div class="six-slot"><label>☀️ 上午 9–12</label><textarea id="six1" placeholder="这一时段的要事 / 感悟…"></textarea></div>
-                <div class="six-slot"><label>🍱 午后 12–15</label><textarea id="six2" placeholder="这一时段的要事 / 感悟…"></textarea></div>
-                <div class="six-slot"><label>🌤️ 下午 15–18</label><textarea id="six3" placeholder="这一时段的要事 / 感悟…"></textarea></div>
-                <div class="six-slot"><label>🌆 傍晚 18–21</label><textarea id="six4" placeholder="这一时段的要事 / 感悟…"></textarea></div>
-                <div class="six-slot"><label>🌙 夜晚 21–24</label><textarea id="six5" placeholder="这一时段的要事 / 感悟…"></textarea></div>
+              <div class="card-head">🕐 六时书 · 选一颗种子，按时种下 <span class="muted">（8:00 / 10:00 / 12:00 / 14:00 / 16:00 / 18:00）</span></div>
+              <div class="sixbook" id="sixBook">
+                <div class="six-slot"><label>🌅 8:00</label><select class="six-seed" data-i="0"></select><input class="six-note" type="text" data-i="0" placeholder="具体一件好事 / 行动（可选）" /></div>
+                <div class="six-slot"><label>☀️ 10:00</label><select class="six-seed" data-i="1"></select><input class="six-note" type="text" data-i="1" placeholder="具体一件好事 / 行动（可选）" /></div>
+                <div class="six-slot"><label>🍱 12:00</label><select class="six-seed" data-i="2"></select><input class="six-note" type="text" data-i="2" placeholder="具体一件好事 / 行动（可选）" /></div>
+                <div class="six-slot"><label>🌤️ 14:00</label><select class="six-seed" data-i="3"></select><input class="six-note" type="text" data-i="3" placeholder="具体一件好事 / 行动（可选）" /></div>
+                <div class="six-slot"><label>🌆 16:00</label><select class="six-seed" data-i="4"></select><input class="six-note" type="text" data-i="4" placeholder="具体一件好事 / 行动（可选）" /></div>
+                <div class="six-slot"><label>🌙 18:00</label><select class="six-seed" data-i="5"></select><input class="six-note" type="text" data-i="5" placeholder="具体一件好事 / 行动（可选）" /></div>
               </div>
             </div>
             <!-- 随手笔记 -->

@@ -284,40 +284,32 @@ function barChart() {
 }
 $("#chartBar").innerHTML = barChart();
 
-// ---------- 三只青蛙 ----------
+// ---------- 三只青蛙（固定三行）----------
 let frogs = store.get("wb_frogs", []);
-function renderFrogs() {
-  $("#frogList").innerHTML = frogs.map((t) => `
-    <li class="todo-item frog ${t.done ? "done" : ""}" data-id="${t.id}">
-      <input class="todo-check" type="checkbox" ${t.done ? "checked" : ""}/>
-      <span class="todo-text">${t.text}</span>
-      <button class="todo-del">✕</button>
-    </li>`).join("");
-  const done = frogs.filter((t) => t.done).length;
+while (frogs.length < 3) frogs.push({ done: false, text: "" });
+function saveFrogs() { store.set("wb_frogs", frogs.slice(0, 3)); }
+function renderFrogCount() {
+  const done = frogs.filter((f) => f && f.done).length;
   $("#frogCount").textContent = `（已吃 ${done}/3 只）`;
-  const full = frogs.length >= 3;
-  $("#frogInput").disabled = full;
-  $("#frogInput").placeholder = full ? "今天的三只青蛙已排满 🐸" : "今天最重要的三件事…";
-  $$("#frogList .todo-item").forEach((li) => {
-    const id = +li.dataset.id;
-    li.querySelector(".todo-check").addEventListener("change", () => {
-      const t = frogs.find((x) => x.id === id); t.done = !t.done; saveFrogs();
-    });
-    li.querySelector(".todo-del").addEventListener("click", () => {
-      frogs = frogs.filter((x) => x.id !== id); saveFrogs();
-    });
-  });
 }
-function saveFrogs() { store.set("wb_frogs", frogs); renderFrogs(); }
-$("#frogForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  if (frogs.length >= 3) { toast("三只青蛙已排满，先吃完一只再添 🐸"); return; }
-  const v = $("#frogInput").value.trim();
-  if (!v) return;
-  frogs.push({ id: Date.now(), text: v, done: false });
-  $("#frogInput").value = ""; saveFrogs();
+$$("#frogRows .todo-item").forEach((li) => {
+  const i = +li.dataset.i;
+  const f = frogs[i] || { done: false, text: "" };
+  const chk = li.querySelector(".todo-check");
+  const inp = li.querySelector(".frog-input");
+  chk.checked = !!f.done;
+  inp.value = f.text || "";
+  chk.addEventListener("change", () => {
+    frogs[i].done = chk.checked;
+    li.classList.toggle("done", chk.checked);
+    saveFrogs(); renderFrogCount();
+  });
+  inp.addEventListener("input", () => {
+    frogs[i].text = inp.value;
+    saveFrogs();
+  });
 });
-renderFrogs();
+renderFrogCount();
 
 // ---------- 待办 ----------
 let todos = store.get("wb_todos", [
@@ -358,12 +350,34 @@ const noteArea = $("#noteArea");
 noteArea.value = store.get("wb_note", "");
 noteArea.addEventListener("input", () => store.set("wb_note", noteArea.value));
 
-// ---------- 六时书 ----------
+// ---------- 六时书（选种子）----------
+const SIX_SEEDS = ["慷慨", "诚实", "随喜", "慈悲", "和谐", "温柔语", "正见", "保护生命", "尊重他人", "感恩", "耐心", "专注"];
+const SIX_SEED_HINT = {
+  "慷慨": "给予他人的时间、能力、微笑",
+  "诚实": "答应别人的事一定做到",
+  "随喜": "真心为他人好事感到开心",
+  "慈悲": "不生气，善待身边人",
+  "和谐": "不搬弄是非，化解矛盾",
+  "温柔语": "好好说话，不伤人",
+  "正见": "保持正确的世界观",
+  "保护生命": "护生、早睡、爱惜身体",
+  "尊重他人": "尊重财物与边界",
+  "感恩": "感恩已拥有的一切",
+  "耐心": "不急躁，从容行事",
+  "专注": "一次只做好一件事",
+};
 for (let i = 0; i < 6; i++) {
-  const el = $("#six" + i);
-  if (!el) continue;
-  el.value = store.get("wb_six_" + i, "");
-  el.addEventListener("input", () => store.set("wb_six_" + i, el.value));
+  const sel = $("#sixBook .six-seed[data-i=\"" + i + "\"]");
+  if (!sel) continue;
+  sel.innerHTML = '<option value="">— 选一颗种子 —</option>' +
+    SIX_SEEDS.map((s) => `<option value="${s}" title="${SIX_SEED_HINT[s] || ""}">${s}</option>`).join("");
+  sel.value = store.get("wb_six_seed_" + i, "");
+  sel.addEventListener("change", () => store.set("wb_six_seed_" + i, sel.value));
+  const note = $("#sixBook .six-note[data-i=\"" + i + "\"]");
+  if (note) {
+    note.value = store.get("wb_six_note_" + i, "");
+    note.addEventListener("input", () => store.set("wb_six_note_" + i, note.value));
+  }
 }
 
 // ---------- 知识库 ----------
