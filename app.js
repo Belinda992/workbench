@@ -160,6 +160,8 @@ function rerenderAll() {
     if (window.renderProductions) renderProductions();
     if (window.renderSchedules) renderSchedules();
     if (window.renderMetrics) renderMetrics();
+    if (window.renderAssist) renderAssist();
+    if (window.renderDream) renderDream();
   } catch (e) { console.warn("rerenderAll 部分失败:", e); }
 }
 
@@ -190,7 +192,8 @@ $$("#nav .nav-item").forEach((btn) => {
     $$("#nav .nav-item").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     $$(".view").forEach((v) => v.classList.remove("active"));
-    $("#view-" + btn.dataset.view).classList.add("active");
+    const target = $("#view-" + btn.dataset.view);
+    if (target) target.classList.add("active");
   });
 });
 
@@ -471,4 +474,125 @@ $("#syncSubmit")?.addEventListener("click", submitSyncLogin);
 $("#btnImport")?.addEventListener("click", openImport);
 $("#importCancel")?.addEventListener("click", () => { $("#importModal").style.display = "none"; });
 $("#importSubmit")?.addEventListener("click", doImport);
+
+// ---------- 映记助手（靛） ----------
+const ASSIST_KEY = "wb_assistant_msgs";
+const escH = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+$$(".assist-chip").forEach((c) =>
+  c.addEventListener("click", () => { $("#assistInput").value = c.dataset.tpl; $("#assistInput").focus(); })
+);
+
+$("#btnAssistCopy")?.addEventListener("click", async () => {
+  const txt = ($("#assistInput").value || "").trim();
+  if (!txt) { toast("先写点什么再复制哦"); return; }
+  try { await navigator.clipboard.writeText(txt); toast("指令已复制，去 WorkBuddy 粘贴吧 📋"); }
+  catch (_) {
+    const ta = $("#assistInput"); ta.select(); document.execCommand("copy"); toast("指令已复制 📋");
+  }
+});
+
+$("#btnAssistSave")?.addEventListener("click", () => {
+  const txt = ($("#assistInput").value || "").trim();
+  if (!txt) { toast("先写点什么再保存哦"); return; }
+  const list = store.get(ASSIST_KEY, []);
+  list.unshift({ id: Date.now(), q: txt, a: "", t: new Date().toLocaleString("zh-CN") });
+  store.set(ASSIST_KEY, list);
+  $("#assistInput").value = "";
+  renderAssist();
+  toast("已存入对话记录 💾");
+});
+
+function renderAssist() {
+  const box = $("#assistLog"); if (!box) return;
+  const list = store.get(ASSIST_KEY, []);
+  $("#assistCount").textContent = list.length ? `${list.length} 条` : "";
+  if (!list.length) { box.innerHTML = `<div class="assist-empty">还没有记录。写一条指令，开始和 AI 的第一次对话吧 🌈</div>`; return; }
+  box.innerHTML = list.map((m) => `
+    <div class="assist-item" data-id="${m.id}">
+      <div class="assist-q">${escH(m.q)}</div>
+      <textarea class="assist-a" placeholder="把 AI 的回复贴到这里存档…（自动保存）">${escH(m.a)}</textarea>
+      <div class="assist-meta">
+        <span class="assist-time">🕰 ${escH(m.t)}</span>
+        <button class="assist-del" data-id="${m.id}">删除</button>
+      </div>
+    </div>`).join("");
+  $$("#assistLog .assist-a").forEach((ta) =>
+    ta.addEventListener("input", () => {
+      const id = Number(ta.closest(".assist-item").dataset.id);
+      const list = getMsgs(); const it = list.find((x) => x.id === id);
+      if (it) { it.a = ta.value; setMsgs(list); }
+    })
+  );
+  $$("#assistLog .assist-del").forEach((b) =>
+    b.addEventListener("click", () => {
+      const id = Number(b.dataset.id);
+      setMsgs(getMsgs().filter((x) => x.id !== id));
+      renderAssist();
+    })
+  );
+}
+function getMsgs() { return store.get(ASSIST_KEY, []); }
+function setMsgs(v) { store.set(ASSIST_KEY, v); }
+
+// ---------- 梦想清单（紫） ----------
+const DREAM_KEY = "wb_dreams";
+$("#dreamForm")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const title = $("#dreamTitle").value.trim();
+  if (!title) { toast("先写下一个梦想吧 🌟"); return; }
+  const list = store.get(DREAM_KEY, []);
+  list.unshift({
+    id: Date.now(), title,
+    cat: $("#dreamCat").value,
+    date: $("#dreamDate").value,
+    done: false,
+    t: new Date().toLocaleDateString("zh-CN"),
+  });
+  store.set(DREAM_KEY, list);
+  $("#dreamTitle").value = ""; $("#dreamDate").value = "";
+  renderDream();
+  toast("心愿已许下 🌟");
+});
+
+function renderDream() {
+  const box = $("#dreamList"); if (!box) return;
+  const list = store.get(DREAM_KEY, []);
+  const done = list.filter((d) => d.done).length;
+  $("#dreamCount").textContent = list.length ? `${list.length} 个 · 已实现 ${done} 个` : "";
+  if (!list.length) { box.innerHTML = `<div class="assist-empty">清单还是空的。写下第一个梦想，它就在路上了 ✨</div>`; return; }
+  box.innerHTML = list.map((d) => `
+    <div class="dream-item ${d.done ? "done" : ""}" data-id="${d.id}">
+      <button class="dream-star" title="点击切换已实现">${d.done ? "🌟" : "💫"}</button>
+      <div class="dream-body">
+        <div class="dream-text">${escH(d.title)}</div>
+        <div class="dream-meta">🏷 ${escH(d.cat)}${d.date ? ` · 🎯 ${escH(d.date)}` : ""} · 许于 ${escH(d.t)}</div>
+      </div>
+      <div class="dream-actions">
+        <button class="dream-btn" data-act="done">${d.done ? "还没实现" : "已实现"}</button>
+        <button class="dream-btn" data-act="del">删除</button>
+      </div>
+    </div>`).join("");
+  $$("#dreamList .dream-item").forEach((el) => {
+    const id = Number(el.dataset.id);
+    el.querySelector(".dream-star").addEventListener("click", () => toggleDream(id));
+    el.querySelector('[data-act="done"]').addEventListener("click", () => toggleDream(id));
+    el.querySelector('[data-act="del"]').addEventListener("click", () => {
+      store.set(DREAM_KEY, store.get(DREAM_KEY, []).filter((x) => x.id !== id));
+      renderDream(); toast("已删除");
+    });
+  });
+}
+function toggleDream(id) {
+  const list = store.get(DREAM_KEY, []);
+  const it = list.find((x) => x.id === id);
+  if (!it) return;
+  it.done = !it.done;
+  store.set(DREAM_KEY, list);
+  if (it.done) toast("恭喜！梦想实现啦 🎉");
+  renderDream();
+}
+
+renderAssist();
+renderDream();
 

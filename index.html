@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>我的工作台</title>
+  <title>映记 · 我的彩虹工作台</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,33 +11,33 @@
     <!-- 侧边栏 -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-logo">工</div>
+        <div class="brand-logo">映</div>
         <div class="brand-text">
-          <div class="brand-name">我的工作台</div>
-          <div class="brand-sub">My Workspace</div>
+          <div class="brand-name">映记</div>
+          <div class="brand-sub">YingJi</div>
         </div>
       </div>
       <nav class="nav" id="nav">
-        <button class="nav-item active" data-view="commands">
-          <span class="nav-ico">⚡</span> 快捷指令
+        <button class="nav-item active" data-view="todo" data-color="red">
+          <span class="nav-ico">⏰</span><span class="nav-label">今日待办</span>
         </button>
-        <button class="nav-item" data-view="dashboard">
-          <span class="nav-ico">📊</span> 数据看板
+        <button class="nav-item" data-view="life" data-color="orange">
+          <span class="nav-ico">🍊</span><span class="nav-label">元气日常</span>
         </button>
-        <button class="nav-item" data-view="life">
-          <span class="nav-ico">🏠</span> 生活记录
+        <button class="nav-item" data-view="xiaoman" data-color="yellow">
+          <span class="nav-ico">👑</span><span class="nav-label">小满成长</span>
         </button>
-        <button class="nav-item" data-view="xiaoman">
-          <span class="nav-ico">👧</span> 小满成长
+        <button class="nav-item" data-view="xing" data-color="green">
+          <span class="nav-ico">📗</span><span class="nav-label">映思学堂</span>
         </button>
-        <button class="nav-item" data-view="xing">
-          <span class="nav-ico">📚</span> 映思学堂
+        <button class="nav-item" data-view="platform" data-color="blue">
+          <span class="nav-ico">📘</span><span class="nav-label">平台运营</span>
         </button>
-        <button class="nav-item" data-view="notes">
-          <span class="nav-ico">📝</span> 待办·笔记
+        <button class="nav-item" data-view="assistant" data-color="indigo">
+          <span class="nav-ico">💬</span><span class="nav-label">映记助手</span>
         </button>
-        <button class="nav-item" data-view="automations">
-          <span class="nav-ico">🤖</span> 自动化任务
+        <button class="nav-item" data-view="dream" data-color="purple">
+          <span class="nav-ico">🫧</span><span class="nav-label">梦想清单</span>
         </button>
       </nav>
       <div class="sidebar-foot">
@@ -62,14 +62,15 @@
       </header>
 
       <!-- 每日开启 -->
-      <div class="daily-banner" id="dailyBanner">
+      <div class="daily-banner rainbow-banner" id="dailyBanner">
+        <div class="rainbow-strip" aria-hidden="true"></div>
         <div class="db-weather-block">
           <div class="db-weather" id="dbWeather"><span class="w-ico">🌤️</span> 正在获取天气…</div>
           <div class="db-tip" id="dbTip"></div>
         </div>
         <div class="db-quote">
           <div class="db-quote-text" id="dbQuote">…</div>
-          <button class="db-quote-btn" id="dbQuoteBtn">换一句</button>
+          <button class="db-quote-btn" id="dbQuoteBtn">换一句 🌈</button>
         </div>
         <div class="db-city">
           <label>城市</label>
@@ -78,15 +79,15 @@
       </div>
 
       <section class="content">
-        <!-- 快捷指令 -->
-        <div class="view active" id="view-commands">
+        <!-- 快捷指令（隐藏，保留供脚本） -->
+        <div class="view" id="view-commands" style="display:none">
           <h2 class="view-title">快捷指令</h2>
           <p class="view-desc">把常做的任务做成一键按钮，点击即可复制指令，粘贴给 WorkBuddy 执行。</p>
           <div class="cmd-grid" id="cmdGrid"></div>
         </div>
 
-        <!-- 数据看板 -->
-        <div class="view" id="view-dashboard">
+        <!-- 数据看板（隐藏，保留供脚本） -->
+        <div class="view" id="view-dashboard" style="display:none">
           <h2 class="view-title">数据看板</h2>
           <p class="view-desc">关键指标与趋势（示例数据，可替换为你的真实数据）。</p>
           <div class="kpi-row" id="kpiRow"></div>
@@ -100,10 +101,10 @@
           </div>
         </div>
 
-        <!-- 待办·笔记 -->
-        <div class="view" id="view-notes">
-          <h2 class="view-title">待办 · 笔记 · 知识库</h2>
-          <p class="view-desc">数据保存在本浏览器，部署到云端后可在任意设备使用。</p>
+        <!-- 今日待办（红） -->
+        <div class="view active" id="view-todo">
+          <h2 class="view-title c-red">⏰ 今日待办</h2>
+          <p class="view-desc">一天从清晰的待办开始。勾掉一项，就离目标近一步。</p>
           <div class="notes-layout">
             <div class="card">
               <div class="card-head">✅ 待办清单 <span class="muted" id="todoCount"></span></div>
@@ -117,6 +118,12 @@
               <div class="card-head">📒 随手笔记</div>
               <textarea id="noteArea" placeholder="记点什么…（自动保存）"></textarea>
             </div>
+          </div>
+        </div>
+
+        <!-- 待办·笔记（隐藏，保留知识库 DOM 供脚本） -->
+        <div class="view" id="view-notes" style="display:none">
+          <div class="notes-layout">
             <div class="card">
               <div class="card-head">🔗 知识库 / 收藏</div>
               <form class="add-row" id="kbForm">
@@ -129,16 +136,16 @@
           </div>
         </div>
 
-        <!-- 自动化任务 -->
-        <div class="view" id="view-automations">
+        <!-- 自动化任务（隐藏，保留供脚本） -->
+        <div class="view" id="view-automations" style="display:none">
           <h2 class="view-title">自动化任务</h2>
           <p class="view-desc">定时运行的任务跑在云端，不依赖本机开机。下方为示例，可在 WorkBuddy 中创建真实自动化。</p>
           <div class="auto-list" id="autoList"></div>
         </div>
 
-        <!-- 生活记录 -->
+        <!-- 元气日常（橙） -->
         <div class="view" id="view-life">
-          <h2 class="view-title">🏠 生活记录</h2>
+          <h2 class="view-title c-orange">🍊 元气日常</h2>
           <p class="view-desc">第一个大主题：日常生活记录 · 个人篇。数据存于本浏览器，部署云端后可多端同步。</p>
 
           <div class="today-chips" id="todayChips"></div>
@@ -239,9 +246,9 @@
           </div>
         </div>
 
-        <!-- 小满成长（独立主题） -->
+        <!-- 小满成长（黄） -->
         <div class="view" id="view-xiaoman">
-          <h2 class="view-title">👧 小满成长手账</h2>
+          <h2 class="view-title c-yellow">👑 小满成长手账</h2>
           <p class="view-desc">我的孩子小满的成长记录 · 单独主题。数据存于本浏览器，部署云端后可多端同步。</p>
           <div class="today-chips" id="xmTodayChip"></div>
 
@@ -300,15 +307,14 @@
           </div>
         </div>
 
-        <!-- 映思学堂 -->
+        <!-- 映思学堂（绿） -->
         <div class="view" id="view-xing">
-          <h2 class="view-title">📚 映思学堂 · 经营工作台</h2>
+          <h2 class="view-title c-green">📗 映思学堂 · 经营工作台</h2>
           <p class="view-desc">把学员、招生、课程产出与测评报告收拢到一处。数据存于本浏览器，部署云端后可多端同步。</p>
 
           <div class="tabs" id="xingTabs">
             <button class="tab active" data-tab="students">学员档案</button>
             <button class="tab" data-tab="course">课程内容</button>
-            <button class="tab" data-tab="content">内容运营</button>
             <button class="tab" data-tab="business">经营数据</button>
             <button class="tab" data-tab="finance">项目财务</button>
           </div>
@@ -522,8 +528,17 @@
             <div class="entry-list" id="expList"></div>
           </div>
 
-          <!-- 内容运营 -->
-          <div class="xtab" id="tab-content">
+          <div class="export-bar">
+            <button class="btn ghost" id="btnExportXing">📤 导出映思学堂数据 (Markdown)</button>
+          </div>
+        </div>
+
+        <!-- 平台运营（蓝） -->
+        <div class="view" id="view-platform">
+          <h2 class="view-title c-blue">📘 平台运营</h2>
+          <p class="view-desc">内容生产与发布 · 平台篇。素材 → 制作 → 排期 → 数据，一条链路全打通。</p>
+
+          <div class="xtab active" id="tab-content">
             <div class="kpi-row" id="kpiContent"></div>
 
             <!-- 素材库 · 收集 -->
@@ -631,9 +646,54 @@
               <div class="entry-list" id="metricList"></div>
             </div>
           </div>
+        </div>
 
-          <div class="export-bar">
-            <button class="btn ghost" id="btnExportXing">📤 导出映思学堂数据 (Markdown)</button>
+        <!-- 映记助手（靛） -->
+        <div class="view" id="view-assistant">
+          <h2 class="view-title c-indigo">💬 映记助手</h2>
+          <p class="view-desc">把想交给 AI 的事写成指令，一键复制后粘到 WorkBuddy 里执行；AI 的回复也可以贴回来存档。</p>
+
+          <div class="card">
+            <div class="card-head">✨ 常用指令 <span class="muted">点击填入</span></div>
+            <div class="assist-chips">
+              <button type="button" class="assist-chip" data-tpl="帮我写一条关于古诗文记忆法的小红书文案，标题要有钩子，正文300字左右。">小红书文案</button>
+              <button type="button" class="assist-chip" data-tpl="帮我规划本周的工作重点，按「重要且紧急 / 重要不紧急」分类列出。">本周规划</button>
+              <button type="button" class="assist-chip" data-tpl="帮我总结今天完成的事，写一段100字左右的日记。">每日总结</button>
+              <button type="button" class="assist-chip" data-tpl="帮我给小满设计3个古诗文记忆小游戏，每个10分钟内能完成。">亲子小游戏</button>
+            </div>
+            <textarea id="assistInput" class="assist-input" placeholder="想让 AI 帮你做什么？写在这里…"></textarea>
+            <div class="assist-actions">
+              <button class="btn" id="btnAssistCopy">📋 复制指令</button>
+              <button class="btn ghost" id="btnAssistSave">💾 存入对话记录</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <div class="card-head">🗂 对话记录 <span class="muted" id="assistCount"></span></div>
+            <div id="assistLog" class="assist-log"></div>
+          </div>
+        </div>
+
+        <!-- 梦想清单（紫） -->
+        <div class="view" id="view-dream">
+          <h2 class="view-title c-purple">🫧 梦想清单</h2>
+          <p class="view-desc">想做的事、想去的地方、想成为的样子。写下来，就会有实现的一天。</p>
+
+          <div class="card">
+            <div class="card-head">➕ 许一个心愿</div>
+            <form id="dreamForm" class="life-form inline">
+              <div class="lf-row"><label>梦想</label><input id="dreamTitle" placeholder="如：带小满去看海" autocomplete="off" /></div>
+              <div class="lf-row"><label>分类</label>
+                <select id="dreamCat"><option>想做的事</option><option>想去的地方</option><option>想学的本事</option><option>想成为的样子</option><option>其他</option></select>
+              </div>
+              <div class="lf-row"><label>希望实现时间</label><input id="dreamDate" type="date" /></div>
+              <button type="submit" class="btn">许下 🌟</button>
+            </form>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <div class="card-head">🌟 我的梦想 <span class="muted" id="dreamCount"></span></div>
+            <div id="dreamList" class="entry-list"></div>
           </div>
         </div>
       </section>

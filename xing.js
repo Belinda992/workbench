@@ -1001,7 +1001,7 @@ $$("#xingTabs .tab").forEach((t) =>
   t.addEventListener("click", () => {
     $$("#xingTabs .tab").forEach((x) => x.classList.remove("active"));
     t.classList.add("active");
-    $$(".xtab").forEach((x) => x.classList.remove("active"));
+    $$("#view-xing .xtab").forEach((x) => x.classList.remove("active"));
     $("#tab-" + t.dataset.tab).classList.add("active");
   })
 );
