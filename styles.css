@@ -159,11 +159,6 @@ body {
 
 /* 主区 */
 .main { flex: 1; display: flex; flex-direction: column; }
-.avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: var(--brand-soft); color: var(--brand);
-  display: grid; place-items: center; font-weight: 700; flex-shrink: 0;
-}
 
 .content { padding: 26px 28px; }
 .view { display: none; animation: fade .25s ease; }
