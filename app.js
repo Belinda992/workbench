@@ -177,13 +177,9 @@ function toast(msg) {
   t._t = setTimeout(() => t.classList.remove("show"), 1600);
 }
 
-// ---------- 顶部问候 / 日期 ----------
+// ---------- 顶部问候 ----------
 (function initTop() {
-  const d = new Date();
-  const h = d.getHours();
-  const greet = h < 6 ? "夜深了，注意休息" : h < 12 ? "早上好" : h < 18 ? "下午好" : "晚上好";
-  $("#greeting").textContent = `${greet}，欢迎回到工作台`;
-  $("#date").textContent = d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+  $("#greeting").textContent = "映记";
 })();
 
 // ---------- 导航切换 ----------
