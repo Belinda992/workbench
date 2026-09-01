@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>我的工作台</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">工</div>
+        <div class="brand-text">
+          <div class="brand-name">我的工作台</div>
+          <div class="brand-sub">My Workspace</div>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-view="commands">
+          <span class="nav-ico">⚡</span> 快捷指令
+        </button>
+        <button class="nav-item" data-view="dashboard">
+          <span class="nav-ico">📊</span> 数据看板
+        </button>
+        <button class="nav-item" data-view="life">
+          <span class="nav-ico">🏠</span> 生活记录
+        </button>
+        <button class="nav-item" data-view="xiaoman">
+          <span class="nav-ico">👧</span> 小满成长
+        </button>
+        <button class="nav-item" data-view="xing">
+          <span class="nav-ico">📚</span> 映思学堂
+        </button>
+        <button class="nav-item" data-view="notes">
+          <span class="nav-ico">📝</span> 待办·笔记
+        </button>
+        <button class="nav-item" data-view="automations">
+          <span class="nav-ico">🤖</span> 自动化任务
+        </button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="cloud-hint">☁ 可部署到云端，多端访问</div>
+        <button class="side-btn" id="btnBackupAll">💾 备份全部数据 (JSON)</button>
+        <button class="side-btn" id="btnImport">📥 导入数据 (JSON)</button>
+      </div>
+    </aside>
+
+    <!-- 主区域 -->
+    <main class="main">
+      <header class="topbar">
+        <div class="greeting" id="greeting">你好，欢迎回来</div>
+        <div class="topbar-right">
+          <div class="sync-box">
+            <span class="sync-pill local" id="syncPill">本地模式</span>
+            <button class="sync-btn" id="btnSyncToggle" data-mode="login">连接云端</button>
+          </div>
+          <div class="date" id="date"></div>
+          <div class="avatar">我</div>
+        </div>
+      </header>
+
+      <!-- 每日开启 -->
+      <div class="daily-banner" id="dailyBanner">
+        <div class="db-weather-block">
+          <div class="db-weather" id="dbWeather"><span class="w-ico">🌤️</span> 正在获取天气…</div>
+          <div class="db-tip" id="dbTip"></div>
+        </div>
+        <div class="db-quote">
+          <div class="db-quote-text" id="dbQuote">…</div>
+          <button class="db-quote-btn" id="dbQuoteBtn">换一句</button>
+        </div>
+        <div class="db-city">
+          <label>城市</label>
+          <input id="cityInput" placeholder="如：北京" />
+        </div>
+      </div>
+
+      <section class="content">
+        <!-- 快捷指令 -->
+        <div class="view active" id="view-commands">
+          <h2 class="view-title">快捷指令</h2>
+          <p class="view-desc">把常做的任务做成一键按钮，点击即可复制指令，粘贴给 WorkBuddy 执行。</p>
+          <div class="cmd-grid" id="cmdGrid"></div>
+        </div>
+
+        <!-- 数据看板 -->
+        <div class="view" id="view-dashboard">
+          <h2 class="view-title">数据看板</h2>
+          <p class="view-desc">关键指标与趋势（示例数据，可替换为你的真实数据）。</p>
+          <div class="kpi-row" id="kpiRow"></div>
+          <div class="chart-card">
+            <div class="chart-title">近 7 日趋势</div>
+            <div id="chartLine" class="chart-box"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">分类占比</div>
+            <div id="chartBar" class="chart-box"></div>
+          </div>
+        </div>
+
+        <!-- 待办·笔记 -->
+        <div class="view" id="view-notes">
+          <h2 class="view-title">待办 · 笔记 · 知识库</h2>
+          <p class="view-desc">数据保存在本浏览器，部署到云端后可在任意设备使用。</p>
+          <div class="notes-layout">
+            <div class="card">
+              <div class="card-head">✅ 待办清单 <span class="muted" id="todoCount"></span></div>
+              <form class="add-row" id="todoForm">
+                <input id="todoInput" placeholder="添加一项待办…" autocomplete="off" />
+                <button type="submit">＋</button>
+              </form>
+              <ul class="todo-list" id="todoList"></ul>
+            </div>
+            <div class="card">
+              <div class="card-head">📒 随手笔记</div>
+              <textarea id="noteArea" placeholder="记点什么…（自动保存）"></textarea>
+            </div>
+            <div class="card">
+              <div class="card-head">🔗 知识库 / 收藏</div>
+              <form class="add-row" id="kbForm">
+                <input id="kbTitle" placeholder="标题" autocomplete="off" />
+                <input id="kbUrl" placeholder="链接（可选）" autocomplete="off" />
+                <button type="submit">＋</button>
+              </form>
+              <ul class="kb-list" id="kbList"></ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 自动化任务 -->
+        <div class="view" id="view-automations">
+          <h2 class="view-title">自动化任务</h2>
+          <p class="view-desc">定时运行的任务跑在云端，不依赖本机开机。下方为示例，可在 WorkBuddy 中创建真实自动化。</p>
+          <div class="auto-list" id="autoList"></div>
+        </div>
+
+        <!-- 生活记录 -->
+        <div class="view" id="view-life">
+          <h2 class="view-title">🏠 生活记录</h2>
+          <p class="view-desc">第一个大主题：日常生活记录 · 个人篇。数据存于本浏览器，部署云端后可多端同步。</p>
+
+          <div class="today-chips" id="todayChips"></div>
+
+          <!-- 1 运动打卡 -->
+          <div class="life-block">
+            <div class="life-head">🧘 运动打卡 <span class="muted">主要是瑜伽</span></div>
+            <form id="exForm" class="life-form">
+              <div class="lf-row">
+                <label>类型</label>
+                <select id="exType">
+                  <option>瑜伽</option><option>跑步</option><option>散步</option><option>力量</option><option>拉伸</option><option>其他</option>
+                </select>
+              </div>
+              <div class="lf-row">
+                <label>当日训练照片</label>
+                <input type="file" id="exPhoto" accept="image/*" />
+                <img id="exPreview" class="photo-prev" alt="预览" />
+              </div>
+              <div class="lf-row">
+                <label>感受</label>
+                <textarea id="exFeeling" placeholder="今天练得怎么样？身体感受、心情…"></textarea>
+              </div>
+              <button type="submit" class="btn">保存打卡</button>
+            </form>
+            <div class="entry-list" id="exList"></div>
+          </div>
+
+          <!-- 2 体重记录 -->
+          <div class="life-block">
+            <div class="life-head">⚖️ 体重记录</div>
+            <form id="wtForm" class="life-form inline">
+              <div class="lf-row">
+                <label>体重(kg)</label>
+                <input id="wtKg" type="number" step="0.1" placeholder="如 58.5" />
+              </div>
+              <div class="lf-row">
+                <label>备注</label>
+                <input id="wtNote" placeholder="可选" />
+              </div>
+              <button type="submit" class="btn">记录</button>
+            </form>
+            <div class="chart-card"><div class="chart-title">近期趋势</div><div id="wtChart" class="chart-box"></div></div>
+            <div class="entry-list" id="wtList"></div>
+          </div>
+
+          <!-- 3 学习 · 番茄钟 -->
+          <div class="life-block">
+            <div class="life-head">🍅 学习 · 番茄钟 <span class="muted">主要是阅读</span></div>
+            <div class="pomo">
+              <div class="pomo-time" id="pomoTime">25:00</div>
+              <div class="pomo-mode m-work" id="pomoMode">专注</div>
+              <div class="pomo-btns">
+                <button class="btn" id="pomoToggle">开始</button>
+                <button class="btn ghost" id="pomoReset">重置</button>
+              </div>
+              <div class="pomo-focus">今日累计专注：<b id="pomoFocus">0</b> 分钟</div>
+            </div>
+            <form id="stForm" class="life-form">
+              <div class="lf-row">
+                <label>读了什么</label>
+                <input id="stBook" placeholder="书名 / 主题" />
+              </div>
+              <div class="lf-row">
+                <label>时长(分)</label>
+                <input id="stMin" type="number" placeholder="如 25" />
+              </div>
+              <div class="lf-row">
+                <label>感受</label>
+                <textarea id="stFeeling" placeholder="收获、想法、触动…"></textarea>
+              </div>
+              <button type="submit" class="btn">保存阅读记录</button>
+            </form>
+            <div class="entry-list" id="stList"></div>
+          </div>
+
+          <!-- 4 当日日记 -->
+          <div class="life-block">
+            <div class="life-head">📔 当日日记 <span class="muted">模板式</span></div>
+            <div class="journal">
+              <div class="jf"><label>今日微光</label><textarea id="jrSpecial" placeholder="今天那道特别的、发光的小瞬间…"></textarea></div>
+              <div class="jf"><label>成就</label><textarea id="jrAch" placeholder="今天完成 / 做到的事"></textarea></div>
+              <div class="jf"><label>感恩</label><textarea id="jrGrat" placeholder="今天感恩的人 / 事"></textarea></div>
+              <div class="jf"><label>反思</label><textarea id="jrRef" placeholder="可以做得更好的地方"></textarea></div>
+              <div class="jf"><label>对自己说的话</label><textarea id="jrWords" placeholder="鼓励 / 提醒自己的一句话"></textarea></div>
+              <div class="export-row">
+                <button class="btn ghost" id="jrWeek">📅 导出本周</button>
+                <button class="btn ghost" id="jrMonth">🗓️ 导出本月</button>
+              </div>
+              <button class="btn" id="jrSave">保存今日日记</button>
+              <span class="jr-saved" id="jrSaved"></span>
+            </div>
+          </div>
+
+          <!-- 5 小满成长手账 已移至独立主题「小满成长」 -->
+          <div class="export-bar">
+            <button class="btn ghost" id="btnExportLife">📤 导出本主题 (Markdown)</button>
+          </div>
+        </div>
+
+        <!-- 小满成长（独立主题） -->
+        <div class="view" id="view-xiaoman">
+          <h2 class="view-title">👧 小满成长手账</h2>
+          <p class="view-desc">我的孩子小满的成长记录 · 单独主题。数据存于本浏览器，部署云端后可多端同步。</p>
+          <div class="today-chips" id="xmTodayChip"></div>
+
+          <!-- 今日记录 -->
+          <div class="life-block">
+            <div class="life-head">📅 今日记录 <span class="muted">记录小满的一天</span></div>
+            <form id="xmForm" class="life-form">
+              <div class="lf-row">
+                <label>心情</label>
+                <select id="xmMood">
+                  <option>😊 开心</option><option>😢 委屈</option><option>😡 生气</option><option>🤔 好奇</option><option>😴 困倦</option><option>🌟 闪亮</option>
+                </select>
+              </div>
+              <div class="lf-row">
+                <label>今日照片</label>
+                <input type="file" id="xmPhoto" accept="image/*" />
+                <img id="xmPreview" class="photo-prev" alt="预览" />
+              </div>
+              <div class="xm-grid">
+                <div class="lf-row"><label>📖 语文</label><textarea id="xmYuwen" placeholder="今天读了 / 说了什么…"></textarea></div>
+                <div class="lf-row"><label>🔢 数学</label><textarea id="xmMath" placeholder="数数、逻辑…"></textarea></div>
+                <div class="lf-row"><label>🔤 英语</label><textarea id="xmEnglish" placeholder="单词、儿歌…"></textarea></div>
+                <div class="lf-row"><label>🏃 运动</label><textarea id="xmSport" placeholder="跑跳、平衡…"></textarea></div>
+                <div class="lf-row"><label>🎨 艺术</label><textarea id="xmArt" placeholder="画画、音乐…"></textarea></div>
+                <div class="lf-row"><label>✨ 特别记录</label><textarea id="xmSpecial" placeholder="今天特别的事…"></textarea></div>
+                <div class="lf-row xm-full"><label>💌 今天想对小满说的话</label><textarea id="xmWords" placeholder="写给孩子的一句话…"></textarea></div>
+              </div>
+              <button type="submit" class="btn">保存今日记录</button>
+            </form>
+            <div class="entry-list" id="xmList"></div>
+          </div>
+
+          <!-- 成长里程碑 -->
+          <div class="life-block">
+            <div class="life-head">🌟 成长里程碑 <span class="muted">关键节点，可配照片</span></div>
+            <form id="msForm" class="life-form">
+              <div class="lf-row">
+                <label>里程碑</label>
+                <input id="msTitle" placeholder="如：第一次自己系鞋带" />
+              </div>
+              <div class="lf-row">
+                <label>描述</label>
+                <input id="msDesc" placeholder="简单记一句" />
+              </div>
+              <div class="lf-row">
+                <label>照片</label>
+                <input type="file" id="msPhoto" accept="image/*" />
+                <img id="msPreview" class="photo-prev" alt="预览" />
+              </div>
+              <button type="submit" class="btn">添加</button>
+            </form>
+            <div class="timeline" id="msTimeline"></div>
+          </div>
+          <div class="export-bar">
+            <button class="btn ghost" id="btnExportXm">📤 导出小满数据 (Markdown)</button>
+          </div>
+        </div>
+
+        <!-- 映思学堂 -->
+        <div class="view" id="view-xing">
+          <h2 class="view-title">📚 映思学堂 · 经营工作台</h2>
+          <p class="view-desc">把学员、招生、课程产出与测评报告收拢到一处。数据存于本浏览器，部署云端后可多端同步。</p>
+
+          <div class="tabs" id="xingTabs">
+            <button class="tab active" data-tab="students">学员档案</button>
+            <button class="tab" data-tab="course">课程内容</button>
+            <button class="tab" data-tab="content">内容运营</button>
+            <button class="tab" data-tab="business">经营数据</button>
+            <button class="tab" data-tab="finance">项目财务</button>
+          </div>
+
+          <!-- 学员档案 -->
+          <div class="xtab active" id="tab-students">
+            <div class="kpi-row" id="kpiStudents"></div>
+            <div class="card-filter xs-filter">
+              <input id="xsSearch" class="cf-search" placeholder="🔍 搜姓名 / 年级 / 来源…" />
+              <select id="xsFilterStatus" class="cf-select">
+                <option value="">全部状态</option>
+                <option value="体验中">体验中</option>
+                <option value="已报名">已报名</option>
+                <option value="跟进中">跟进中</option>
+                <option value="结课">结课</option>
+              </select>
+              <button type="button" class="cf-clear" id="xsFilterClear">清除</button>
+              <span class="cf-count" id="xsCount"></span>
+            </div>
+            <div class="life-block">
+              <div class="life-head">➕ 添加学员</div>
+              <form id="xsForm" class="life-form">
+                <div class="lf-row"><label>姓名</label><input id="xsName" placeholder="如：万孟乔" /></div>
+                <div class="lf-row"><label>年级</label><input id="xsGrade" placeholder="如：五年级" /></div>
+                <div class="lf-row"><label>来源</label><input id="xsSource" placeholder="如：朋友圈 / 转介绍" /></div>
+                <div class="lf-row"><label>报名课程</label>
+                  <input id="xsCourse" list="xsCourseList" placeholder="如：7天体验课（可下拉选课程目录）" autocomplete="off" />
+                  <datalist id="xsCourseList"></datalist>
+                </div>
+                <div class="lf-row"><label>缴费金额(元)</label><input id="xsFee" type="number" placeholder="如：199" /></div>
+                <div class="lf-row"><label>状态</label>
+                  <select id="xsStatus"><option>体验中</option><option>已报名</option><option>跟进中</option><option>结课</option></select>
+                </div>
+                <details class="xs-abilities">
+                  <summary>🧠 能力快照（可选，留空不记录）</summary>
+                  <div class="rating-grid" id="xsRating"></div>
+                </details>
+                <button type="submit" class="btn">添加</button>
+              </form>
+            </div>
+            <div class="entry-list" id="xsList"></div>
+
+            <div class="sub-sec" style="margin-top:30px;">
+              <div class="sub-head">📑 测评解读报告</div>
+              <div class="life-block">
+                <div class="life-head">➕ 新建测评解读报告</div>
+                <form id="repForm" class="life-form">
+                  <div class="inline-3">
+                    <div class="lf-row"><label>学员</label><input id="repName" placeholder="姓名" /></div>
+                    <div class="lf-row"><label>日期</label><input id="repDate" type="date" /></div>
+                    <div class="lf-row"><label>年级</label><input id="repGrade" placeholder="如：五年级" /></div>
+                  </div>
+                  <div class="lf-row"><label>十大能力评级</label>
+                    <div class="rating-grid" id="repRating"></div>
+                  </div>
+                  <div class="lf-row"><label>报告摘要 / 关键发现</label><textarea id="repNote" placeholder="孩子的优势、家长反馈、后续建议…"></textarea></div>
+                  <button type="submit" class="btn">保存报告</button>
+                </form>
+              </div>
+              <div class="entry-list" id="repList"></div>
+            </div>
+          </div>
+
+          <!-- 课程内容 -->
+          <div class="xtab" id="tab-course">
+            <div class="kpi-row" id="kpiCourse"></div>
+
+            <!-- 基础资料 -->
+            <div class="sub-sec">
+              <div class="sub-head">📚 基础资料 · 古诗文记忆卡片</div>
+              <div class="card-filter">
+                <input id="cardSearch" class="cf-search" placeholder="🔍 搜诗名 / 作者 / 朝代…" />
+                <select id="cardFilterType" class="cf-select">
+                  <option value="">全部类型</option>
+                  <option>五言绝句</option><option>七言绝句</option><option>五言律诗</option><option>七言律诗</option><option>古诗</option><option>小令</option><option>中调</option><option>长调</option><option>短古文</option><option>中古文</option><option>长古文</option>
+                </select>
+                <select id="cardFilterRecite" class="cf-select">
+                  <option value="">全部必背</option>
+                  <option value="小学必背">小学必背</option>
+                  <option value="初中必背">初中必背</option>
+                  <option value="高中必背">高中必背</option>
+                </select>
+                <select id="cardFilterStatus" class="cf-select">
+                  <option value="">全部状态</option>
+                  <option>待制作</option><option>制作中</option><option>已发布</option>
+                </select>
+                <button type="button" class="cf-clear" id="cardFilterClear">清除</button>
+                <span class="cf-count" id="cardCount"></span>
+              </div>
+              <div class="life-block">
+                <div class="life-head">➕ 登记古诗文记忆卡片</div>
+                <form id="cardForm" class="life-form">
+                  <div class="lf-row"><label>诗名</label><input id="cardName" placeholder="如：静夜思" /></div>
+                  <div class="lf-row"><label>朝代</label><input id="cardDyn" placeholder="唐" /></div>
+                  <div class="lf-row"><label>作者</label><input id="cardAuthor" placeholder="李白" /></div>
+                  <div class="lf-row"><label>类型</label>
+                    <select id="cardType">
+                      <option>五言绝句</option><option>七言绝句</option><option>五言律诗</option><option>七言律诗</option><option>古诗</option><option>小令</option><option>中调</option><option>长调</option><option>短古文</option><option>中古文</option><option>长古文</option>
+                    </select>
+                  </div>
+                  <div class="lf-row"><label>册数（几上 / 几下）</label>
+                    <div class="inline-2">
+                      <select id="cardGrade">
+                        <option>一年级</option><option>二年级</option><option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option><option>初一</option><option>初二</option><option>初三</option><option>高一</option><option>高二</option><option>高三</option>
+                      </select>
+                      <select id="cardTerm"><option>上</option><option>下</option></select>
+                    </div>
+                  </div>
+                  <div class="lf-row"><label>整体状态</label>
+                    <select id="cardStatus"><option>待制作</option><option>制作中</option><option>已发布</option></select>
+                  </div>
+                  <div class="lf-row"><label>阶段必背</label>
+                    <div class="recite-group" id="cardRecite">
+                      <label class="rec"><input type="checkbox" data-phase="小学必背" /> 小学必背</label>
+                      <label class="rec"><input type="checkbox" data-phase="初中必背" /> 初中必背</label>
+                      <label class="rec"><input type="checkbox" data-phase="高中必背" /> 高中必背</label>
+                    </div>
+                  </div>
+                  <div class="lf-row"><label>上传记忆卡片</label>
+                    <input type="file" id="cardImg" accept="image/*" />
+                    <img id="cardImgPreview" class="photo-prev" alt="预览" />
+                  </div>
+                  <div class="lf-row"><label>六步法进度（看读析构记忆）</label>
+                    <div class="sixsteps" id="cardSteps">
+                      <label class="ss s1"><input type="checkbox" data-step="看" /> 看·红</label>
+                      <label class="ss s2"><input type="checkbox" data-step="读" /> 读·橙</label>
+                      <label class="ss s3"><input type="checkbox" data-step="析" /> 析·黄</label>
+                      <label class="ss s4"><input type="checkbox" data-step="构" /> 构·绿</label>
+                      <label class="ss s5"><input type="checkbox" data-step="记" /> 记·蓝</label>
+                      <label class="ss s6"><input type="checkbox" data-step="忆" /> 忆·紫</label>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn">登记</button>
+                </form>
+                <div class="seed-row">
+                  <button type="button" class="btn ghost" id="btnSeedCards">📥 一键预录部编版必背（状态：待制作）</button>
+                  <span class="muted" id="seedHint"></span>
+                </div>
+              </div>
+              <div class="entry-list" id="cardList"></div>
+            </div>
+
+            <!-- 课程目录 -->
+            <div class="sub-sec" style="margin-top:34px;">
+              <div class="sub-head">🗂️ 课程目录 · 开课与定价</div>
+              <div class="life-block">
+                <div class="life-head">➕ 录入课程（关联到学员报班与财务收入）</div>
+                <form id="courseForm" class="life-form">
+                  <div class="lf-row"><label>课程名称</label><input id="courseName" placeholder="如：7天高效记忆体验课" /></div>
+                  <div class="lf-row"><label>周期</label><input id="courseCycle" placeholder="如：7天 / 12周 / 一学期" /></div>
+                  <div class="lf-row"><label>内容形式</label>
+                    <select id="courseMode">
+                      <option>视频课</option><option>直播课</option><option>1对1</option><option>线下班</option><option>社群带练</option><option>混合</option>
+                    </select>
+                  </div>
+                  <div class="lf-row"><label>定价(元)</label><input id="coursePrice" type="number" placeholder="如：199" /></div>
+                  <div class="lf-row"><label>状态</label>
+                    <select id="courseStatus"><option>招生中</option><option>已满</option><option>暂停</option><option>下架</option></select>
+                  </div>
+                  <div class="lf-row"><label>简介</label><textarea id="courseDesc" placeholder="课程亮点、适合人群…（选填）"></textarea></div>
+                  <button type="submit" class="btn">录入课程</button>
+                </form>
+              </div>
+              <div class="entry-list" id="courseList"></div>
+            </div>
+          </div>
+
+          <!-- 经营数据 -->
+          <div class="xtab" id="tab-business">
+            <div class="kpi-row" id="kpiBusiness"></div>
+            <div class="life-block">
+              <div class="life-head">➕ 录入招生线索</div>
+              <form id="leadForm" class="life-form inline">
+                <div class="lf-row"><label>日期</label><input id="leadDate" type="date" /></div>
+                <div class="lf-row"><label>家长 / 学员</label><input id="leadName" placeholder="称呼" /></div>
+                <div class="lf-row"><label>来源</label><input id="leadSrc" placeholder="如：小红书 / 转介绍" /></div>
+                <div class="lf-row"><label>阶段</label>
+                  <select id="leadStage"><option>咨询</option><option>体验</option><option>报名</option></select>
+                </div>
+                <button type="submit" class="btn">录入</button>
+              </form>
+            </div>
+            <div class="funnel" id="funnelView"></div>
+            <div class="src-stats" id="srcStats"></div>
+          </div>
+
+          <!-- 项目财务 -->
+          <div class="xtab" id="tab-finance">
+            <div class="kpi-row" id="kpiFinance"></div>
+            <div class="life-block">
+              <div class="life-head">💰 收入明细（自动汇总学员缴费）</div>
+              <div class="entry-list" id="incomeList"></div>
+            </div>
+            <div class="life-block" style="margin-top:22px;">
+              <div class="life-head">📈 各课程收入合计（按学员报班归属）</div>
+              <div class="entry-list" id="courseIncome"></div>
+            </div>
+            <div class="life-block" style="margin-top:22px;">
+              <div class="life-head">➖ 录入支出</div>
+              <form id="expForm" class="life-form inline">
+                <div class="lf-row"><label>日期</label><input id="expDate" type="date" /></div>
+                <div class="lf-row"><label>项目</label><input id="expItem" placeholder="如：小红书投流" /></div>
+                <div class="lf-row"><label>分类</label>
+                  <select id="expCat"><option>广告投放</option><option>物料制作</option><option>场地</option><option>人工</option><option>软件/工具</option><option>其他</option></select>
+                </div>
+                <div class="lf-row"><label>金额(元)</label><input id="expAmount" type="number" placeholder="如：300" /></div>
+                <div class="lf-row"><label>备注</label><input id="expNote" placeholder="选填" /></div>
+                <button type="submit" class="btn">添加支出</button>
+              </form>
+            </div>
+            <div class="entry-list" id="expList"></div>
+          </div>
+
+          <!-- 内容运营 -->
+          <div class="xtab" id="tab-content">
+            <div class="kpi-row" id="kpiContent"></div>
+
+            <!-- 素材库 · 收集 -->
+            <div class="sub-sec">
+              <div class="sub-head">📥 素材库 · 收集</div>
+              <div class="life-block">
+                <div class="life-head">➕ 收集一条素材</div>
+                <form id="matForm" class="life-form">
+                  <div class="lf-row"><label>主题 / 标题</label><input id="matTitle" placeholder="如：古诗文记忆法的爆款标题" /></div>
+                  <div class="lf-row"><label>类型</label>
+                    <select id="matType"><option>图文灵感</option><option>视频素材</option><option>文案参考</option><option>热点</option><option>竞品</option><option>其他</option></select>
+                  </div>
+                  <div class="lf-row"><label>来源平台</label>
+                    <select id="matFrom"><option>小红书</option><option>视频号</option><option>公众号</option><option>其他</option></select>
+                  </div>
+                  <div class="lf-row"><label>链接（选填）</label><input id="matUrl" placeholder="原文链接" /></div>
+                  <div class="lf-row"><label>备注</label><textarea id="matNote" placeholder="为什么收藏、打算怎么用…"></textarea></div>
+                  <button type="submit" class="btn">收藏</button>
+                </form>
+              </div>
+              <div class="entry-list" id="matList"></div>
+            </div>
+
+            <!-- 制作 · 选题/脚本/成片 -->
+            <div class="sub-sec" style="margin-top:30px;">
+              <div class="sub-head">🛠️ 制作 · 选题 / 脚本 / 成片</div>
+              <div class="card-filter">
+                <select id="prodFilterStatus" class="cf-select">
+                  <option value="">全部状态</option>
+                  <option>选题中</option><option>脚本中</option><option>制作中</option><option>已成型</option><option>已发布</option>
+                </select>
+                <button type="button" class="cf-clear" id="prodFilterClear">清除</button>
+                <span class="cf-count" id="prodCount"></span>
+              </div>
+              <div class="life-block">
+                <div class="life-head">➕ 新建制作任务</div>
+                <form id="prodForm" class="life-form">
+                  <div class="lf-row"><label>标题</label><input id="prodTitle" placeholder="如：3步背下《静夜思》" /></div>
+                  <div class="lf-row"><label>平台</label>
+                    <select id="prodPlat"><option>小红书</option><option>视频号</option><option>公众号</option><option>多平台</option></select>
+                  </div>
+                  <div class="lf-row"><label>形式</label>
+                    <select id="prodShape"><option>图文</option><option>短视频</option><option>长视频</option><option>文章</option></select>
+                  </div>
+                  <div class="lf-row"><label>状态</label>
+                    <select id="prodStatus"><option>选题中</option><option>脚本中</option><option>制作中</option><option>已成型</option><option>已发布</option></select>
+                  </div>
+                  <div class="lf-row"><label>关联素材（选填）</label>
+                    <input id="prodMat" list="matListData" placeholder="选素材库里的主题" autocomplete="off" />
+                    <datalist id="matListData"></datalist>
+                  </div>
+                  <div class="lf-row"><label>备注</label><textarea id="prodNote" placeholder="脚本要点、进度…"></textarea></div>
+                  <button type="submit" class="btn">添加</button>
+                </form>
+              </div>
+              <div class="entry-list" id="prodList"></div>
+            </div>
+
+            <!-- 发布计划 · 排期 -->
+            <div class="sub-sec" style="margin-top:30px;">
+              <div class="sub-head">📅 发布计划 · 排期</div>
+              <div class="life-block">
+                <div class="life-head">➕ 排一期发布</div>
+                <form id="schedForm" class="life-form">
+                  <div class="lf-row"><label>内容标题</label><input id="schedTitle" placeholder="如：寒假记忆法直播" /></div>
+                  <div class="lf-row"><label>平台</label>
+                    <select id="schedPlat"><option>小红书</option><option>视频号</option><option>公众号</option><option>多平台</option></select>
+                  </div>
+                  <div class="lf-row"><label>计划发布日期</label><input id="schedDate" type="date" /></div>
+                  <div class="lf-row"><label>状态</label>
+                    <select id="schedStatus"><option>待发布</option><option>已发布</option><option>已搁置</option></select>
+                  </div>
+                  <div class="lf-row"><label>发布链接（选填）</label><input id="schedUrl" placeholder="发布后回填" /></div>
+                  <div class="lf-row"><label>备注</label><input id="schedNote" placeholder="选填" /></div>
+                  <button type="submit" class="btn">排期</button>
+                </form>
+              </div>
+              <div class="entry-list" id="schedList"></div>
+            </div>
+
+            <!-- 数据跟踪 -->
+            <div class="sub-sec" style="margin-top:30px;">
+              <div class="sub-head">📈 数据跟踪</div>
+              <div class="life-block">
+                <div class="life-head">➕ 记录一条数据</div>
+                <form id="metricForm" class="life-form">
+                  <div class="lf-row"><label>平台</label>
+                    <select id="metricPlat"><option>小红书</option><option>视频号</option><option>公众号</option></select>
+                  </div>
+                  <div class="lf-row"><label>内容标题</label><input id="metricTitle" placeholder="对应发布的内容" /></div>
+                  <div class="lf-row"><label>日期</label><input id="metricDate" type="date" /></div>
+                  <div class="lf-row"><label>曝光 / 播放</label><input id="metricView" type="number" placeholder="0" /></div>
+                  <div class="lf-row"><label>点赞</label><input id="metricLike" type="number" placeholder="0" /></div>
+                  <div class="lf-row"><label>收藏</label><input id="metricFav" type="number" placeholder="0" /></div>
+                  <div class="lf-row"><label>评论</label><input id="metricCmt" type="number" placeholder="0" /></div>
+                  <div class="lf-row"><label>转发</label><input id="metricShare" type="number" placeholder="0" /></div>
+                  <div class="lf-row"><label>转化（加微 / 报名）</label><input id="metricConv" type="number" placeholder="0" /></div>
+                  <button type="submit" class="btn">记录</button>
+                </form>
+              </div>
+              <div class="life-block" style="margin-top:18px;">
+                <div class="life-head">📊 各平台数据合计</div>
+                <div class="entry-list" id="metricSummary"></div>
+              </div>
+              <div class="entry-list" id="metricList"></div>
+            </div>
+          </div>
+
+          <div class="export-bar">
+            <button class="btn ghost" id="btnExportXing">📤 导出映思学堂数据 (Markdown)</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <!-- 同步遮罩 -->
+  <div class="overlay" id="syncOverlay" style="display:none;">
+    <div class="overlay-card">
+      <div class="spinner"></div>
+      <div id="syncOverlayText">正在同步云端数据…</div>
+    </div>
+  </div>
+
+  <!-- 连接云端弹窗 -->
+  <div class="modal" id="syncModal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-title">连接云端同步</div>
+      <p class="muted">输入你的同步密码（需与云端服务器的 sync.config.json 中的 token 一致）。连接后，数据会保存在云端，任意电脑登录同一密码即可编辑同一份数据。</p>
+      <input id="syncPwd" type="password" placeholder="同步密码" autocomplete="off" />
+      <div class="modal-actions">
+        <button class="btn ghost" id="syncCancel">取消</button>
+        <button class="btn" id="syncSubmit">连接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入数据弹窗 -->
+  <div class="modal" id="importModal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-title">导入数据 (JSON)</div>
+      <p class="muted">粘贴之前「备份全部数据」导出的 JSON，或选择文件。将按 key 覆盖合并到当前数据（不影响其他板块）。</p>
+      <textarea id="importText" placeholder='{"wb_xs_students":[...], "wb_xs_cards":[...]}'></textarea>
+      <input type="file" id="importFile" accept="application/json,.json" />
+      <div class="modal-actions">
+        <button class="btn ghost" id="importCancel">取消</button>
+        <button class="btn" id="importSubmit">导入</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="daily.js"></script>
+  <script src="life.js"></script>
+  <script src="xing.js"></script>
+</body>
+</html>

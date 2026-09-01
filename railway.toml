@@ -1,0 +1,11 @@
+# Railway 部署配置（免费 Node 平台）
+# 把整个 workbench 文件夹推到 GitHub 后，在 Railway 连接该仓库即可自动识别
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+# ⚠️ 务必在 Railway 面板给服务挂一个 Persistent Volume 到 /app 目录，
+#    否则容器重启后 wb_store.json 数据会丢失。
