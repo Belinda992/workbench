@@ -305,7 +305,8 @@ body {
 .btn.ghost { background: #eef0f5; color: var(--text); }
 
 .entry-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
-.entry { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; align-items: flex-start; }
+.entry { display: flex; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; align-items: flex-start; cursor: pointer; transition: .15s; }
+.entry:hover { border-color: var(--green); background: #f3faf5; }
 .entry-photo { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .entry-body { flex: 1; }
 .entry-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
@@ -398,7 +399,9 @@ body {
 .cf-select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; background: #fff; color: var(--text); cursor: pointer; }
 .cf-clear { padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; color: var(--text); cursor: pointer; }
 .cf-clear:hover { border-color: var(--brand); color: var(--brand); }
-.cf-count { font-size: 12.5px; color: var(--brand); margin-left: auto; }
+.cf-count { font-size: 12.5px; color: var(--brand); margin-left: 0; }
+.cf-add { margin-left: auto; padding: 8px 16px; border: none; border-radius: 8px; background: var(--green); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.cf-add:hover { filter: brightness(1.05); }
 
 /* 课程内容：子板块分隔（基础资料 / 课程目录） */
 .sub-sec { margin-top: 8px; }
@@ -491,6 +494,11 @@ body {
 .modal-card textarea { min-height: 120px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
 .modal-card input[type=file] { width: 100%; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.cm-card { background: #fff; border-radius: var(--radius); padding: 22px; width: 540px; max-width: 100%; max-height: 88vh; overflow: auto; box-shadow: var(--shadow); }
+.cm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cm-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.cm-x { border: none; background: transparent; font-size: 18px; color: var(--muted); cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+.cm-x:hover { background: #f0f1f5; }
 
 /* ===== 七彩模块标题色 ===== */
 .view-title.c-red    { color: var(--c-red); }

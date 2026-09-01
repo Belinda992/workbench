@@ -382,80 +382,90 @@
           <div class="xtab" id="tab-course">
             <div class="kpi-row" id="kpiCourse"></div>
 
-            <!-- 基础资料 -->
-            <div class="sub-sec">
-              <div class="sub-head">📚 基础资料 · 古诗文记忆卡片</div>
-              <div class="card-filter">
-                <input id="cardSearch" class="cf-search" placeholder="🔍 搜诗名 / 作者 / 朝代…" />
-                <select id="cardFilterType" class="cf-select">
-                  <option value="">全部类型</option>
-                  <option>五言绝句</option><option>七言绝句</option><option>五言律诗</option><option>七言律诗</option><option>古诗</option><option>小令</option><option>中调</option><option>长调</option><option>短古文</option><option>中古文</option><option>长古文</option>
-                </select>
-                <select id="cardFilterRecite" class="cf-select">
-                  <option value="">全部必背</option>
-                  <option value="小学必背">小学必背</option>
-                  <option value="初中必背">初中必背</option>
-                  <option value="高中必背">高中必背</option>
-                </select>
-                <select id="cardFilterStatus" class="cf-select">
-                  <option value="">全部状态</option>
-                  <option>待制作</option><option>制作中</option><option>已发布</option>
-                </select>
-                <button type="button" class="cf-clear" id="cardFilterClear">清除</button>
-                <span class="cf-count" id="cardCount"></span>
-              </div>
-              <div class="life-block">
-                <div class="life-head">➕ 登记古诗文记忆卡片</div>
-                <form id="cardForm" class="life-form">
-                  <div class="lf-row"><label>诗名</label><input id="cardName" placeholder="如：静夜思" /></div>
-                  <div class="lf-row"><label>朝代</label><input id="cardDyn" placeholder="唐" /></div>
-                  <div class="lf-row"><label>作者</label><input id="cardAuthor" placeholder="李白" /></div>
-                  <div class="lf-row"><label>类型</label>
-                    <select id="cardType">
-                      <option>五言绝句</option><option>七言绝句</option><option>五言律诗</option><option>七言律诗</option><option>古诗</option><option>小令</option><option>中调</option><option>长调</option><option>短古文</option><option>中古文</option><option>长古文</option>
-                    </select>
-                  </div>
-                  <div class="lf-row"><label>册数（几上 / 几下）</label>
-                    <div class="inline-2">
-                      <select id="cardGrade">
-                        <option>一年级</option><option>二年级</option><option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option><option>初一</option><option>初二</option><option>初三</option><option>高一</option><option>高二</option><option>高三</option>
-                      </select>
-                      <select id="cardTerm"><option>上</option><option>下</option></select>
-                    </div>
-                  </div>
-                  <div class="lf-row"><label>整体状态</label>
-                    <select id="cardStatus"><option>待制作</option><option>制作中</option><option>已发布</option></select>
-                  </div>
-                  <div class="lf-row"><label>阶段必背</label>
-                    <div class="recite-group" id="cardRecite">
-                      <label class="rec"><input type="checkbox" data-phase="小学必背" /> 小学必背</label>
-                      <label class="rec"><input type="checkbox" data-phase="初中必背" /> 初中必背</label>
-                      <label class="rec"><input type="checkbox" data-phase="高中必背" /> 高中必背</label>
-                    </div>
-                  </div>
-                  <div class="lf-row"><label>上传记忆卡片</label>
-                    <input type="file" id="cardImg" accept="image/*" />
-                    <img id="cardImgPreview" class="photo-prev" alt="预览" />
-                  </div>
-                  <div class="lf-row"><label>六步法进度（看读析构记忆）</label>
-                    <div class="sixsteps" id="cardSteps">
-                      <label class="ss s1"><input type="checkbox" data-step="看" /> 看·红</label>
-                      <label class="ss s2"><input type="checkbox" data-step="读" /> 读·橙</label>
-                      <label class="ss s3"><input type="checkbox" data-step="析" /> 析·黄</label>
-                      <label class="ss s4"><input type="checkbox" data-step="构" /> 构·绿</label>
-                      <label class="ss s5"><input type="checkbox" data-step="记" /> 记·蓝</label>
-                      <label class="ss s6"><input type="checkbox" data-step="忆" /> 忆·紫</label>
-                    </div>
-                  </div>
-                  <button type="submit" class="btn">登记</button>
-                </form>
+              <!-- 基础资料 -->
+              <div class="sub-sec">
+                <div class="sub-head">📚 基础资料 · 古诗文记忆卡片</div>
+                <div class="card-filter">
+                  <input id="cardSearch" class="cf-search" placeholder="🔍 搜诗名 / 作者 / 朝代…" />
+                  <select id="cardFilterType" class="cf-select">
+                    <option value="">全部类型</option>
+                    <option>五言绝句</option><option>七言绝句</option><option>五言律诗</option><option>七言律诗</option><option>古诗</option><option>小令</option><option>中调</option><option>长调</option><option>短古文</option><option>中古文</option><option>长古文</option>
+                  </select>
+                  <select id="cardFilterRecite" class="cf-select">
+                    <option value="">全部必背</option>
+                    <option value="小学必背">小学必背</option>
+                    <option value="初中必背">初中必背</option>
+                    <option value="高中必背">高中必背</option>
+                  </select>
+                  <select id="cardFilterStatus" class="cf-select">
+                    <option value="">全部状态</option>
+                    <option>待制作</option><option>制作中</option><option>已发布</option>
+                  </select>
+                  <button type="button" class="cf-clear" id="cardFilterClear">清除</button>
+                  <span class="cf-count" id="cardCount"></span>
+                  <button type="button" class="cf-add" id="btnAddCard">＋ 新增</button>
+                </div>
+
+                <div class="entry-list" id="cardList"></div>
+
                 <div class="seed-row">
                   <button type="button" class="btn ghost" id="btnSeedCards">📥 一键预录部编版必背（状态：待制作）</button>
                   <span class="muted" id="seedHint"></span>
                 </div>
               </div>
-              <div class="entry-list" id="cardList"></div>
-            </div>
+
+              <!-- 卡片登记 / 编辑弹窗 -->
+              <div class="modal" id="cardModal" style="display:none;">
+                <div class="cm-card">
+                  <div class="cm-head">
+                    <span class="cm-title" id="cardModalTitle">登记古诗文记忆卡片</span>
+                    <button type="button" class="cm-x" id="cardModalClose">✕</button>
+                  </div>
+                  <form id="cardForm" class="life-form">
+                    <div class="lf-row"><label>诗名</label><input id="cardName" placeholder="如：静夜思" /></div>
+                    <div class="lf-row"><label>朝代</label><input id="cardDyn" placeholder="唐" /></div>
+                    <div class="lf-row"><label>作者</label><input id="cardAuthor" placeholder="李白" /></div>
+                    <div class="lf-row"><label>类型</label>
+                      <select id="cardType">
+                        <option>五言绝句</option><option>七言绝句</option><option>五言律诗</option><option>七言律诗</option><option>古诗</option><option>小令</option><option>中调</option><option>长调</option><option>短古文</option><option>中古文</option><option>长古文</option>
+                      </select>
+                    </div>
+                    <div class="lf-row"><label>册数（几上 / 几下）</label>
+                      <div class="inline-2">
+                        <select id="cardGrade">
+                          <option>一年级</option><option>二年级</option><option>三年级</option><option>四年级</option><option>五年级</option><option>六年级</option><option>初一</option><option>初二</option><option>初三</option><option>高一</option><option>高二</option><option>高三</option>
+                        </select>
+                        <select id="cardTerm"><option>上</option><option>下</option></select>
+                      </div>
+                    </div>
+                    <div class="lf-row"><label>整体状态</label>
+                      <select id="cardStatus"><option>待制作</option><option>制作中</option><option>已发布</option></select>
+                    </div>
+                    <div class="lf-row"><label>阶段必背</label>
+                      <div class="recite-group" id="cardRecite">
+                        <label class="rec"><input type="checkbox" data-phase="小学必背" /> 小学必背</label>
+                        <label class="rec"><input type="checkbox" data-phase="初中必背" /> 初中必背</label>
+                        <label class="rec"><input type="checkbox" data-phase="高中必背" /> 高中必背</label>
+                      </div>
+                    </div>
+                    <div class="lf-row"><label>上传记忆卡片</label>
+                      <input type="file" id="cardImg" accept="image/*" />
+                      <img id="cardImgPreview" class="photo-prev" alt="预览" />
+                    </div>
+                    <div class="lf-row"><label>六步法进度（看读析构记忆）</label>
+                      <div class="sixsteps" id="cardSteps">
+                        <label class="ss s1"><input type="checkbox" data-step="看" /> 看·红</label>
+                        <label class="ss s2"><input type="checkbox" data-step="读" /> 读·橙</label>
+                        <label class="ss s3"><input type="checkbox" data-step="析" /> 析·黄</label>
+                        <label class="ss s4"><input type="checkbox" data-step="构" /> 构·绿</label>
+                        <label class="ss s5"><input type="checkbox" data-step="记" /> 记·蓝</label>
+                        <label class="ss s6"><input type="checkbox" data-step="忆" /> 忆·紫</label>
+                      </div>
+                    </div>
+                    <button type="submit" class="btn" id="cardSubmitBtn">登记</button>
+                  </form>
+                </div>
+              </div>
 
             <!-- 课程目录 -->
             <div class="sub-sec" style="margin-top:34px;">

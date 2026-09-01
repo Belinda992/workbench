@@ -865,6 +865,7 @@ function renderSteps(steps) {
 
 // ---------- 古诗文卡片 ----------
 let cardImgData = null;
+let editingTs = null;
 $("#cardImg").addEventListener("change", async (e) => {
   const f = e.target.files[0];
   if (!f) return;
@@ -881,7 +882,7 @@ $("#cardForm").addEventListener("submit", (e) => {
   $$("#cardSteps input[type=checkbox]").forEach((c) => { steps[c.dataset.step] = c.checked; });
   const recite = $$("#cardRecite input[type=checkbox]").filter((c) => c.checked).map((c) => c.dataset.phase);
   const list = store.get(XS.cards, []);
-  list.push({
+  const data = {
     name,
     dyn: $("#cardDyn").value.trim(),
     author: $("#cardAuthor").value.trim(),
@@ -892,16 +893,57 @@ $("#cardForm").addEventListener("submit", (e) => {
     status: $("#cardStatus").value,
     steps,
     img: cardImgData,
-    ts: Date.now(),
-  });
+  };
+  if (editingTs != null) {
+    const idx = list.findIndex((c) => c.ts === editingTs);
+    if (idx >= 0) { data.ts = editingTs; list[idx] = data; } else { data.ts = Date.now(); list.push(data); }
+  } else {
+    data.ts = Date.now();
+    list.push(data);
+  }
   store.set(XS.cards, list);
   e.target.reset();
   cardImgData = null;
   $("#cardImgPreview").style.display = "none";
+  closeCardModal();
   renderCards();
   renderKpis(); renderFinance();
-  toast("卡片已登记");
+  toast(editingTs != null ? "卡片已更新" : "卡片已登记");
 });
+
+function openCardModal(card) {
+  const f = $("#cardForm");
+  f.reset();
+  $("#cardImgPreview").style.display = "none";
+  cardImgData = null;
+  if (card) {
+    editingTs = card.ts;
+    $("#cardModalTitle").textContent = "编辑：" + card.name;
+    $("#cardSubmitBtn").textContent = "保存修改";
+    $("#cardName").value = card.name || "";
+    $("#cardDyn").value = card.dyn || "";
+    $("#cardAuthor").value = card.author || "";
+    $("#cardType").value = card.type || "古诗";
+    $("#cardGrade").value = card.grade || "一年级";
+    $("#cardTerm").value = card.term || "上";
+    $("#cardStatus").value = card.status || "待制作";
+    $$("#cardRecite input[type=checkbox]").forEach((c) => { c.checked = !!(card.recite && card.recite.includes(c.dataset.phase)); });
+    $$("#cardSteps input[type=checkbox]").forEach((c) => { c.checked = !!(card.steps && card.steps[c.dataset.step]); });
+    if (card.img) { cardImgData = card.img; const prev = $("#cardImgPreview"); prev.src = card.img; prev.style.display = "block"; }
+  } else {
+    editingTs = null;
+    $("#cardModalTitle").textContent = "登记古诗文记忆卡片";
+    $("#cardSubmitBtn").textContent = "登记";
+  }
+  $("#cardModal").style.display = "flex";
+}
+function closeCardModal() {
+  $("#cardModal").style.display = "none";
+  editingTs = null;
+  cardImgData = null;
+  $("#cardForm").reset();
+  $("#cardImgPreview").style.display = "none";
+}
 const cardFilter = { q: "", type: "", recite: "", status: "" };
 function renderCards() {
   const all = store.get(XS.cards, []);
@@ -922,7 +964,7 @@ function renderCards() {
   $("#cardCount").textContent = `共 ${list.length} / ${all.length} 首`;
   $("#cardList").innerHTML = list.length
     ? list.map((c) => `
-      <div class="entry">
+      <div class="entry" data-ts="${c.ts}" title="点击编辑">
         <div class="entry-body">
           <div class="entry-meta">${(c.grade || "") + (c.term || "") || "—"} · ${c.dyn || "—"} · ${c.author || "—"}<span class="type-badge">${escapeHtml(c.type || "—")}</span> · <b style="color:var(--brand)">${c.status}</b></div>
           <div class="entry-text"><b>${escapeHtml(c.name)}</b></div>
@@ -930,14 +972,22 @@ function renderCards() {
           ${renderSteps(c.steps)}
           ${c.img ? `<img src="${c.img}" alt="记忆卡片" style="max-width:150px;max-height:150px;border-radius:8px;border:1px solid var(--line);margin-top:8px" />` : ""}
         </div>
-        <button class="entry-del" data-k="${c.ts}">✕</button>
+        <button class="entry-del" data-k="${c.ts}" title="删除">✕</button>
       </div>`).join("")
     : '<div class="muted">没有匹配的卡片，试试调整筛选条件</div>';
   $$("#cardList .entry-del").forEach((b) =>
-    b.addEventListener("click", () => {
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
       store.set(XS.cards, store.get(XS.cards, []).filter((y) => y.ts !== +b.dataset.k));
       renderCards();
       renderKpis(); renderFinance();
+    })
+  );
+  $$("#cardList .entry").forEach((el) =>
+    el.addEventListener("click", () => {
+      const ts = +el.dataset.ts;
+      const card = store.get(XS.cards, []).find((y) => y.ts === ts);
+      if (card) openCardModal(card);
     })
   );
 }
@@ -1073,6 +1123,11 @@ $("#btnExportXing").addEventListener("click", () => {
 
 // ---------- 预录按钮 ----------
 $("#btnSeedCards").addEventListener("click", seedCards);
+
+// ---------- 卡片新增 / 编辑弹窗 ----------
+$("#btnAddCard").addEventListener("click", () => openCardModal(null));
+$("#cardModalClose").addEventListener("click", closeCardModal);
+$("#cardModal").addEventListener("click", (e) => { if (e.target.id === "cardModal") closeCardModal(); });
 
 // ---------- 卡片搜索 / 筛选 ----------
 $("#cardSearch").addEventListener("input", (e) => { cardFilter.q = e.target.value; renderCards(); });
