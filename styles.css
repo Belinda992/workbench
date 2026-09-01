@@ -66,8 +66,8 @@ body {
 }
 .nav-item:hover { background: var(--brand-soft); }
 .nav-item.active { background: var(--brand); color: #fff; }
-.nav-ico { font-size: 20px; line-height: 1; }
-.nav-label { text-align: center; font-size: 12.5px; line-height: 1.2; }
+.nav-ico { font-size: 28px; line-height: 1; }
+.nav-label { text-align: center; font-size: 11px; line-height: 1.2; }
 /* 七彩导航：红橙黄绿蓝靛紫 */
 .nav-item[data-color="red"]    .nav-ico { color: var(--c-red); }
 .nav-item[data-color="orange"] .nav-ico { color: var(--c-orange); }
