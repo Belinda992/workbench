@@ -220,7 +220,7 @@ body {
 .todo-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; }
 .todo-item.done .todo-text { text-decoration: line-through; color: var(--muted); }
 .todo-check { width: 18px; height: 18px; cursor: pointer; }
-.todo-text { flex: 1; font-size: 13px; }
+.todo-text { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .todo-del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 15px; }
 .note-area, #noteArea {
   width: 100%; min-height: 200px; border: 1px solid var(--line);
@@ -246,7 +246,7 @@ body {
 .six-slot input.six-note:focus { border-color: var(--brand); }
 .frog-rows { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .frog-rows .frog-input {
-  flex: 1; padding: 9px 11px; border: 1px solid var(--line);
+  flex: 1; min-width: 0; padding: 9px 11px; border: 1px solid var(--line);
   border-radius: 9px; font-size: 13px; font-family: inherit; outline: none;
 }
 .frog-rows .frog-input:focus { border-color: var(--brand); }
@@ -362,7 +362,7 @@ body {
 
 /* 待办 / 青蛙每条右边的操作按钮 */
 .todo-item { display: flex; align-items: center; gap: 8px; }
-.todo-acts { display: inline-flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+.todo-acts { display: inline-flex; flex-wrap: nowrap; gap: 4px; margin-left: auto; flex-shrink: 0; }
 .ta-btn {
   width: 26px; height: 26px; border: 1px solid var(--line); background: #fff;
   border-radius: 7px; cursor: pointer; font-size: 12px; line-height: 1;
