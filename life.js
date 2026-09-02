@@ -28,6 +28,94 @@ const todayStr = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+/* ========== 补录：可切换"正在记录的日期" ========== */
+let curLifeDate = todayStr();   // 元气日常（运动 / 体重 / 学习 / 日记）
+let curXmDate = todayStr();     // 小满成长（每日记录 / 里程碑）
+
+// 日期加减天数，返回 YYYY-MM-DD
+function shiftDate(d, delta) {
+  const [y, m, dd] = String(d).split("-").map(Number);
+  const dt = new Date(y, m - 1, dd);
+  dt.setDate(dt.getDate() + delta);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+// 日期的友好叫法
+function dateLabel(d) {
+  const t = todayStr();
+  if (d === t) return "今天";
+  if (d === shiftDate(t, -1)) return "昨天";
+  if (d === shiftDate(t, -2)) return "前天";
+  if (d === shiftDate(t, 1)) return "明天";
+  const p = String(d).split("-");
+  return `${+p[1]}月${+p[2]}日`;
+}
+// 排序：日期倒序，同一天按录入时间倒序
+const byDateDesc = (a, b) =>
+  String(b.date || "").localeCompare(String(a.date || "")) || (b.ts || 0) - (a.ts || 0);
+
+// 日期选择条：绑定前后翻页 / 快捷按钮 / 手动选日期
+function bindDatePick(opts) {
+  const { view, inputId, prevId, nextId, get, set } = opts;
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const root = document.querySelector(`#${view} .date-pick`);
+  input.value = get();
+  input.addEventListener("change", () => {
+    if (input.value) set(input.value);
+    else input.value = get();
+  });
+  document.getElementById(prevId).addEventListener("click", () => set(shiftDate(get(), -1)));
+  document.getElementById(nextId).addEventListener("click", () => set(shiftDate(get(), 1)));
+  root.querySelectorAll(".dp-quick").forEach((b) =>
+    b.addEventListener("click", () => set(shiftDate(todayStr(), +b.dataset.d)))
+  );
+}
+
+// 更新元气日常日期选择条的状态提示
+function syncLifeDateUI() {
+  const el = document.getElementById("lifeDate");
+  if (el) el.value = curLifeDate;
+  const hint = document.getElementById("lifeDateHint");
+  if (hint) hint.textContent = curLifeDate === todayStr() ? "" : `补录 ${dateLabel(curLifeDate)}（${curLifeDate}）`;
+  const jt = document.getElementById("jrHeadTitle");
+  if (jt) jt.textContent = curLifeDate === todayStr() ? "当日日记" : `${dateLabel(curLifeDate)}日记`;
+  const jh = document.getElementById("jrHeadHint");
+  if (jh) jh.textContent = curLifeDate === todayStr() ? "模板式" : `补录 ${curLifeDate}`;
+}
+
+// 更新小满日期选择条的状态提示
+function syncXmDateUI() {
+  const el = document.getElementById("xmDate");
+  if (el) el.value = curXmDate;
+  const has = store.get(LS.xm, []).some((x) => x.date === curXmDate);
+  const hint = document.getElementById("xmDateHint");
+  if (hint) hint.textContent = has ? `已有记录，保存会更新` : `这天还没有记录`;
+  const ht = document.getElementById("xmHeadTitle");
+  if (ht) ht.textContent = curXmDate === todayStr() ? "今日记录" : `${dateLabel(curXmDate)}记录`;
+  const hh = document.getElementById("xmHeadHint");
+  if (hh) hh.textContent = curXmDate === todayStr() ? "记录小满的一天" : `补录 ${curXmDate}`;
+  const sb = document.getElementById("xmSaveBtn");
+  if (sb) sb.textContent = has ? "更新这条记录" : "保存记录";
+}
+
+// 切换元气日常的记录日期
+function setLifeDate(d) {
+  curLifeDate = d;
+  syncLifeDateUI();
+  renderChips();
+  loadJournal();
+  renderEx(); renderWt(); renderSt();
+}
+
+// 切换小满的记录日期
+function setXmDate(d) {
+  curXmDate = d;
+  syncXmDateUI();
+  loadXmForm();
+  renderXmChip();
+  renderXm();
+}
+
 // 工具：转义 + 下载
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -69,16 +157,16 @@ function fileToDataURL(file, maxW = 1000, q = 0.72) {
 
 // ---------- 今日状态 chips ----------
 function renderChips() {
-  const t = todayStr();
+  const t = curLifeDate;
   const ex = store.get(LS.ex, []).some((e) => e.date === t);
   const wt = store.get(LS.wt, []).some((e) => e.date === t);
   const st = store.get(LS.st, []).some((e) => e.date === t);
   const jr = !!store.get(LS.jr, {})[t];
-  const xm = store.get(LS.xm, []).some((e) => e.date === t);
   const chips = [["运动", ex], ["体重", wt], ["学习", st], ["日记", jr]];
-  $("#todayChips").innerHTML = chips
-    .map(([n, done]) => `<span class="chip ${done ? "chip-on" : "chip-off"}">${done ? "✅" : "⬜"} ${n}</span>`)
-    .join("");
+  const isToday = t === todayStr();
+  $("#todayChips").innerHTML =
+    chips.map(([n, done]) => `<span class="chip ${done ? "chip-on" : "chip-off"}">${done ? "✅" : "⬜"} ${n}</span>`).join("") +
+    (isToday ? "" : `<span class="chip chip-note">📌 正在补录 ${dateLabel(t)}</span>`);
 }
 
 // ---------- 1. 运动打卡 ----------
@@ -94,7 +182,7 @@ $("#exPhoto").addEventListener("change", async (e) => {
 $("#exForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const feeling = $("#exFeeling").value.trim();
-  const entry = { date: todayStr(), type: $("#exType").value, photo: exPhotoData, feeling, ts: Date.now() };
+  const entry = { date: curLifeDate, type: $("#exType").value, photo: exPhotoData, feeling, ts: Date.now() };
   const list = store.get(LS.ex, []);
   list.push(entry);
   store.set(LS.ex, list);
@@ -105,9 +193,9 @@ $("#exForm").addEventListener("submit", (e) => {
   toast("运动打卡已保存 🧘");
 });
 function renderEx() {
-  const list = store.get(LS.ex, []).slice(-8).reverse();
+  const list = store.get(LS.ex, []).slice().sort(byDateDesc).slice(0, 8);
   $("#exList").innerHTML = list.map((e) => `
-    <div class="entry">
+    <div class="entry${e.date === curLifeDate ? " today" : ""}">
       ${e.photo ? `<img class="entry-photo" src="${e.photo}" alt="训练照"/>` : ""}
       <div class="entry-body">
         <div class="entry-meta">${e.date} · ${e.type}</div>
@@ -129,20 +217,21 @@ $("#wtForm").addEventListener("submit", (e) => {
   const kg = parseFloat($("#wtKg").value);
   if (!kg) return;
   const list = store.get(LS.wt, []);
-  list.push({ date: todayStr(), kg, note: $("#wtNote").value.trim(), ts: Date.now() });
+  list.push({ date: curLifeDate, kg, note: $("#wtNote").value.trim(), ts: Date.now() });
   store.set(LS.wt, list);
   e.target.reset();
   renderWt(); renderChips();
   toast("体重已记录 ⚖️");
 });
 function renderWt() {
-  const list = store.get(LS.wt, []);
-  const recent = list.slice(-7);
+  const asc = store.get(LS.wt, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.ts || 0) - (b.ts || 0));
+  const recent = asc.slice(-7);
   $("#wtChart").innerHTML = recent.length
     ? miniLine(recent.map((r) => r.kg))
     : '<div class="muted">暂无数据</div>';
-  $("#wtList").innerHTML = list.slice(-8).reverse().map((r) => `
-    <div class="entry">
+  const list = asc.slice().reverse().slice(0, 8);
+  $("#wtList").innerHTML = list.map((r) => `
+    <div class="entry${r.date === curLifeDate ? " today" : ""}">
       <div class="entry-body">
         <div class="entry-meta">${r.date}</div>
         <div class="entry-text">${r.kg} kg ${r.note ? "· " + r.note : ""}</div>
@@ -217,16 +306,16 @@ $("#stForm").addEventListener("submit", (e) => {
   const minutes = parseInt($("#stMin").value) || 0;
   if (!book && !minutes) return;
   const list = store.get(LS.st, []);
-  list.push({ date: todayStr(), book: book || "（未命名）", minutes, feeling: $("#stFeeling").value.trim(), ts: Date.now() });
+  list.push({ date: curLifeDate, book: book || "（未命名）", minutes, feeling: $("#stFeeling").value.trim(), ts: Date.now() });
   store.set(LS.st, list);
   e.target.reset();
   renderSt(); renderChips();
   toast("阅读记录已保存 📚");
 });
 function renderSt() {
-  const list = store.get(LS.st, []).slice(-8).reverse();
+  const list = store.get(LS.st, []).slice().sort(byDateDesc).slice(0, 8);
   $("#stList").innerHTML = list.map((s) => `
-    <div class="entry">
+    <div class="entry${s.date === curLifeDate ? " today" : ""}">
       <div class="entry-body">
         <div class="entry-meta">${s.date} · ${s.minutes} 分钟</div>
         <div class="entry-text"><b>${s.book}</b>${s.feeling ? "<br>" + s.feeling : ""}</div>
@@ -244,7 +333,7 @@ function renderSt() {
 // ---------- 4. 当日日记 ----------
 function loadJournal() {
   const all = store.get(LS.jr, {});
-  const t = todayStr();
+  const t = curLifeDate;
   const j = all[t] || {};
   $("#jrSpecial").value = j.special || "";
   $("#jrGrat").value = j.grat || "";
@@ -254,7 +343,7 @@ function loadJournal() {
 }
 $("#jrSave").addEventListener("click", () => {
   const all = store.get(LS.jr, {});
-  all[todayStr()] = {
+  all[curLifeDate] = {
     special: $("#jrSpecial").value.trim(),
     grat: $("#jrGrat").value.trim(),
     ach: $("#jrAch").value.trim(),
@@ -266,7 +355,7 @@ $("#jrSave").addEventListener("click", () => {
   const s = $("#jrSaved");
   s.textContent = "已保存 ✓ " + new Date().toLocaleTimeString("zh-CN");
   setTimeout(() => (s.textContent = ""), 2500);
-  toast("今日日记已保存 📔");
+  toast(curLifeDate === todayStr() ? "今日日记已保存 📔" : dateLabel(curLifeDate) + "日记已补录 📔");
 });
 
 // 日记回顾导出（周 / 月）
@@ -315,7 +404,7 @@ $("#xmPhoto").addEventListener("change", async (e) => {
 $("#xmForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const rec = {
-    date: todayStr(),
+    date: curXmDate,
     mood: $("#xmMood").value,
     photo: xmPhotoData,
     yuwen: $("#xmYuwen").value.trim(),
@@ -329,16 +418,44 @@ $("#xmForm").addEventListener("submit", (e) => {
   };
   if (!XM_FIELDS.some(([k]) => rec[k])) return;
   const list = store.get(LS.xm, []);
-  list.push(rec);
+  // 一天只保留一条：这天已有记录就更新，没有才新增（补录/修改都不会产生重复）
+  const existing = list.filter((x) => x.date === curXmDate).sort((a, b) => b.ts - a.ts)[0];
+  if (existing) {
+    Object.assign(existing, {
+      mood: rec.mood,
+      yuwen: rec.yuwen, math: rec.math, english: rec.english,
+      sport: rec.sport, art: rec.art, special: rec.special, words: rec.words,
+    });
+    if (rec.photo) existing.photo = rec.photo;   // 没重新选照片就保留原来的
+  } else {
+    list.push(rec);
+  }
   store.set(LS.xm, list);
-  e.target.reset();
-  xmPhotoData = null;
-  $("#xmPreview").style.display = "none";
-  renderXm(); renderChips(); renderXmChip();
-  toast("小满今日记录已保存 👧");
+  renderXm(); renderChips(); renderXmChip(); syncXmDateUI();
+  toast(existing
+    ? dateLabel(curXmDate) + "记录已更新 👧"
+    : (curXmDate === todayStr() ? "小满今日记录已保存 👧" : dateLabel(curXmDate) + "记录已补录 👧"));
 });
+// 把选中日期已有的记录回填到表单（这天还没记录就把表单清空）
+function loadXmForm() {
+  const list = store.get(LS.xm, []).filter((x) => x.date === curXmDate).sort((a, b) => b.ts - a.ts);
+  const rec = list[0] || {};
+  $("#xmMood").value = rec.mood || "😊 开心";
+  $("#xmYuwen").value = rec.yuwen || "";
+  $("#xmMath").value = rec.math || "";
+  $("#xmEnglish").value = rec.english || "";
+  $("#xmSport").value = rec.sport || "";
+  $("#xmArt").value = rec.art || "";
+  $("#xmSpecial").value = rec.special || "";
+  $("#xmWords").value = rec.words || "";
+  xmPhotoData = null;
+  const prev = $("#xmPreview");
+  if (rec.photo) { prev.src = rec.photo; prev.style.display = "block"; }
+  else { prev.style.display = "none"; prev.removeAttribute("src"); }
+}
+
 function renderXm() {
-  const list = store.get(LS.xm, []).slice().sort((a, b) => b.ts - a.ts);
+  const list = store.get(LS.xm, []).slice().sort(byDateDesc);
   $("#xmList").innerHTML = list.map((x) => {
     let body = "";
     XM_FIELDS.forEach(([k, lab]) => {
@@ -346,7 +463,7 @@ function renderXm() {
     });
     if (!body && x.content) body = `<div class="entry-text">${escapeHtml(x.content).replace(/\n/g, "<br>")}</div>`;
     const head = x.title ? `<b>${escapeHtml(x.title)}</b><br>` : "";
-    return `<div class="entry">
+    return `<div class="entry${x.date === curXmDate ? " today" : ""}">
       ${x.photo ? `<img class="entry-photo" src="${x.photo}" alt="照片"/>` : ""}
       <div class="entry-body">
         <div class="entry-meta">${x.date} · ${x.mood}</div>
@@ -375,10 +492,12 @@ $("#msPhoto").addEventListener("change", async (e) => {
 
 // 小满今日状态
 function renderXmChip() {
-  const t = todayStr();
+  const t = curXmDate;
   const done = store.get(LS.xm, []).some((e) => e.date === t);
   const el = $("#xmTodayChip");
-  if (el) el.innerHTML = `<span class="chip ${done ? "chip-on" : "chip-off"}">${done ? "✅" : "⬜"} 今日小满记录</span>`;
+  if (el) el.innerHTML =
+    `<span class="chip ${done ? "chip-on" : "chip-off"}">${done ? "✅" : "⬜"} ${dateLabel(t)}小满记录</span>` +
+    (t === todayStr() ? "" : `<span class="chip chip-note">📌 正在补录 ${dateLabel(t)}</span>`);
 }
 
 // ---------- 成长里程碑时间线 ----------
@@ -388,7 +507,7 @@ $("#msForm").addEventListener("submit", (e) => {
   const desc = $("#msDesc").value.trim();
   if (!title) return;
   const list = store.get(LS.ms, []);
-  list.push({ date: todayStr(), title, desc, photo: msPhotoData, ts: Date.now() });
+  list.push({ date: curXmDate, title, desc, photo: msPhotoData, ts: Date.now() });
   store.set(LS.ms, list);
   e.target.reset();
   msPhotoData = null;
@@ -467,6 +586,15 @@ $("#btnExportXm").addEventListener("click", exportXmMarkdown);
 $("#btnBackupAll").addEventListener("click", exportAllJson);
 
 // 初始化
+bindDatePick({
+  view: "view-life", inputId: "lifeDate", prevId: "lifePrevDay",
+  nextId: "lifeNextDay", get: () => curLifeDate, set: setLifeDate,
+});
+bindDatePick({
+  view: "view-xiaoman", inputId: "xmDate", prevId: "xmPrevDay",
+  nextId: "xmNextDay", get: () => curXmDate, set: setXmDate,
+});
+
 renderChips();
 renderEx();
 renderWt();
@@ -476,3 +604,6 @@ loadJournal();
 renderXm();
 renderXmChip();
 renderMilestone();
+syncLifeDateUI();
+syncXmDateUI();
+loadXmForm();

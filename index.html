@@ -147,6 +147,16 @@
         <div class="view" id="view-life">
           <h2 class="view-title c-orange">🍊 元气日常</h2>
           
+          <div class="date-pick" data-tone="orange">
+            <span class="dp-label">📅 记录日期</span>
+            <button class="dp-nav" id="lifePrevDay" type="button" title="前一天">‹</button>
+            <input type="date" id="lifeDate" />
+            <button class="dp-nav" id="lifeNextDay" type="button" title="后一天">›</button>
+            <button class="dp-quick" data-d="0" type="button">今天</button>
+            <button class="dp-quick" data-d="-1" type="button">昨天</button>
+            <span class="dp-hint" id="lifeDateHint"></span>
+          </div>
+
           <div class="today-chips" id="todayChips"></div>
 
           <!-- 1 运动打卡 -->
@@ -223,7 +233,7 @@
 
           <!-- 4 当日日记 -->
           <div class="life-block">
-            <div class="life-head">📔 当日日记 <span class="muted">模板式</span></div>
+            <div class="life-head">📔 <span id="jrHeadTitle">当日日记</span> <span class="muted" id="jrHeadHint">模板式</span></div>
             <div class="journal">
               <div class="jf"><label>今日微光</label><textarea id="jrSpecial" placeholder="今天那道特别的、发光的小瞬间…"></textarea></div>
               <div class="jf"><label>成就</label><textarea id="jrAch" placeholder="今天完成 / 做到的事"></textarea></div>
@@ -248,11 +258,21 @@
         <!-- 小满成长（黄） -->
         <div class="view" id="view-xiaoman">
           <h2 class="view-title c-yellow">👑 小满成长手账</h2>
-                    <div class="today-chips" id="xmTodayChip"></div>
+          <div class="date-pick" data-tone="yellow">
+            <span class="dp-label">📅 记录日期</span>
+            <button class="dp-nav" id="xmPrevDay" type="button" title="前一天">‹</button>
+            <input type="date" id="xmDate" />
+            <button class="dp-nav" id="xmNextDay" type="button" title="后一天">›</button>
+            <button class="dp-quick" data-d="0" type="button">今天</button>
+            <button class="dp-quick" data-d="-1" type="button">昨天</button>
+            <span class="dp-hint" id="xmDateHint"></span>
+          </div>
+
+          <div class="today-chips" id="xmTodayChip"></div>
 
           <!-- 今日记录 -->
           <div class="life-block">
-            <div class="life-head">📅 今日记录 <span class="muted">记录小满的一天</span></div>
+            <div class="life-head">📅 <span id="xmHeadTitle">今日记录</span> <span class="muted" id="xmHeadHint">记录小满的一天</span></div>
             <form id="xmForm" class="life-form">
               <div class="lf-row">
                 <label>心情</label>
@@ -274,7 +294,7 @@
                 <div class="lf-row"><label>✨ 特别记录</label><textarea id="xmSpecial" placeholder="今天特别的事…"></textarea></div>
                 <div class="lf-row xm-full"><label>💌 今天想对小满说的话</label><textarea id="xmWords" placeholder="写给孩子的一句话…"></textarea></div>
               </div>
-              <button type="submit" class="btn">保存今日记录</button>
+              <button type="submit" class="btn" id="xmSaveBtn">保存今日记录</button>
             </form>
             <div class="entry-list" id="xmList"></div>
           </div>

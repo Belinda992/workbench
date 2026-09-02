@@ -147,6 +147,10 @@ function rerenderAll() {
     if (window.renderXm) renderXm();
     if (window.renderXmChip) renderXmChip();
     if (window.renderMilestone) renderMilestone();
+    if (window.loadJournal) loadJournal();
+    if (window.loadXmForm) loadXmForm();
+    if (window.syncLifeDateUI) syncLifeDateUI();
+    if (window.syncXmDateUI) syncXmDateUI();
     if (window.renderXs) renderXs();
     if (window.renderCards) renderCards();
     if (window.renderReports) renderReports();
