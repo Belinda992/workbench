@@ -473,7 +473,7 @@ const TL_ICONS = [
   { key: "rest",    icon: "☕", label: "休息" },
   { key: "xiaoman", icon: "👧", label: "小满" },
   { key: "chore",   icon: "🧹", label: "杂事" },
-  { key: "enjoy",   icon: "🪷", label: "享受" },
+  { key: "enjoy",   icon: "☀️", label: "享受" },
   { key: "record",  icon: "✍️", label: "记录" },
   { key: "waste",   icon: "💨", label: "浪费" },
 ];
