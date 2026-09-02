@@ -373,6 +373,20 @@ function delTask(id) {
   toast("已删除");
 }
 
+// 自动顺延：当天（含更早）没打勾完成的青蛙 / 待办，默认推到「今天」（即它的第二天）
+function autoRoll() {
+  const today = todoToday();
+  let changed = false;
+  tasks.forEach((t) => {
+    if ((t.type === "frog" || t.type === "todo") && !t.done && t.date < today) {
+      t.date = today;
+      changed = true;
+    }
+  });
+  if (changed) { saveTasks(); return true; }
+  return false;
+}
+
 // ---------- 三只青蛙（每天固定三行）----------
 function renderFrogCount() {
   const list = frogsOf(curTodoDate);
@@ -452,13 +466,24 @@ $("#todoForm").addEventListener("submit", (e) => {
 const TL_START = 6 * 60, TL_END = 22 * 60, TL_STEP = 30;
 const TL_SIX = [8, 10, 12, 14, 16, 18];            // 六时书的六个整点
 const TL_ICONS = [
-  { key: "frog",  icon: "🐸", label: "要事（青蛙）" },
-  { key: "cal",   icon: "📅", label: "固定日程" },
-  { key: "rest",  icon: "☕", label: "休息" },
-  { key: "meal",  icon: "🍚", label: "吃饭" },
-  { key: "pomo",  icon: "🍅", label: "番茄钟" },
-  { key: "other", icon: "✨", label: "其他" },
+  { key: "frog",    icon: "🐸", label: "青蛙" },
+  { key: "sport",   icon: "🏃", label: "运动" },
+  { key: "study",   icon: "📚", label: "学习" },
+  { key: "meal",    icon: "🍚", label: "吃饭" },
+  { key: "rest",    icon: "☕", label: "休息" },
+  { key: "xiaoman", icon: "👧", label: "小满" },
+  { key: "chore",   icon: "🧹", label: "杂事" },
+  { key: "enjoy",   icon: "🌸", label: "享受" },
+  { key: "record",  icon: "✍️", label: "记录" },
+  { key: "waste",   icon: "💨", label: "浪费" },
 ];
+// 老图标换成新名字后，旧记录要能认出来
+const TL_LEGACY = { cal: "chore", pomo: "study", other: "chore" };
+function iconOf(key) {
+  return TL_ICONS.find((x) => x.key === key) ||
+         TL_ICONS.find((x) => x.key === (TL_LEGACY[key] || "")) ||
+         TL_ICONS[TL_ICONS.length - 1];
+}
 const SIX_SEEDS = ["慷慨", "诚实", "随喜", "慈悲", "和谐", "温柔语", "正见", "保护生命", "尊重他人", "感恩", "耐心", "专注"];
 const SIX_SEED_HINT = {
   "慷慨": "给予他人的时间、能力、微笑", "诚实": "答应别人的事一定做到",
@@ -508,7 +533,7 @@ function renderTimeline() {
     const sixIdx = TL_SIX.indexOf(Math.floor(m / 60));
     const isSix = sixIdx !== -1 && isHour;
     const item = data[key] || null;
-    const ico = item ? (TL_ICONS.find((x) => x.key === item.icon) || TL_ICONS[5]) : null;
+    const ico = item ? iconOf(item.icon) : null;
     const seed = isSix ? (six.seeds[sixIdx] || "") : "";
     const sNote = isSix ? (six.notes[sixIdx] || "") : "";
     html += `<div class="tl-row ${isHour ? "is-hour" : ""} ${isSix ? "is-six" : ""}" data-key="${key}">
@@ -541,7 +566,7 @@ function openSlotEditor(key) {
   closeTlEditors();
   const row = document.querySelector('#timeline .tl-row[data-key="' + key + '"]');
   if (!row) return;
-  const cur = loadTl(curTodoDate)[key] || { icon: "other", text: "" };
+  const cur = loadTl(curTodoDate)[key] || { icon: "chore", text: "" };
   const box = document.createElement("div");
   box.className = "tl-editor";
   box.innerHTML =
@@ -620,6 +645,53 @@ $("#tlClear").addEventListener("click", () => {
   toast("已清空");
 });
 
+// ---------- 时间统计：看看时间都花在哪了 ----------
+function renderTlStats() {
+  const days = 30;
+  const counts = {};
+  let total = 0;
+  for (let i = 0; i < days; i++) {
+    const data = loadTl(todoShift(todoToday(), -i));
+    Object.keys(data).forEach((k) => {
+      const it = data[k];
+      const key = it && it.icon ? it.icon : "chore";
+      counts[key] = (counts[key] || 0) + 1;
+      total++;
+    });
+  }
+  const box = $("#tlStatsBox");
+  if (!total) {
+    box.innerHTML = '<div class="muted">这一个月还没有记录，先去时间轴上点几格吧～</div>';
+    return;
+  }
+  const rows = TL_ICONS.filter((ic) => (counts[ic.key] || 0) > 0)
+    .map((ic) => ({ icon: ic.icon, label: ic.label, n: counts[ic.key] }))
+    .sort((a, b) => b.n - a.n);
+  const maxN = rows[0].n;
+  const hrs = (n) => (n * 0.5).toFixed(1);
+  let html = `<div class="ts-head">📊 近 ${days} 天 · 共记录 ${hrs(total)} 小时（每格 30 分钟）</div>`;
+  html += '<div class="ts-list">' + rows.map((r) => `
+    <div class="ts-row">
+      <span class="ts-ico">${r.icon}</span>
+      <span class="ts-name">${r.label}</span>
+      <span class="ts-bar"><i style="width:${Math.max(3, Math.round((r.n / maxN) * 100))}%"></i></span>
+      <span class="ts-num">${hrs(r.n)}h</span>
+      <span class="ts-pct">${Math.round((r.n / total) * 100)}%</span>
+    </div>`).join("") + "</div>";
+  box.innerHTML = html;
+}
+$("#tlStats").addEventListener("click", () => {
+  const box = $("#tlStatsBox");
+  if (box.style.display === "block") {
+    box.style.display = "none";
+    $("#tlStats").textContent = "📊 时间统计";
+  } else {
+    renderTlStats();
+    box.style.display = "block";
+    $("#tlStats").textContent = "📊 收起统计";
+  }
+});
+
 // ---------- 查看日期切换 ----------
 let weekPlanOpen = false;
 function renderTodoAll() {
@@ -633,6 +705,9 @@ function setTodoDate(d) {
   $("#todoDate").value = d;
   const hint = $("#todoDateHint");
   if (hint) hint.textContent = d === todoToday() ? "" : "正在看 " + todoLabel(d) + "（" + d + "）";
+  if (d === todoToday() && autoRoll()) {   // 顺延昨日未完成的青蛙 / 待办到今天
+    toast("已把昨天没完成的青蛙 / 待办顺延到今天 ✓");
+  }
   renderFrogs(); renderTodos(); renderTimeline();
   loadNoteFor(d);
   if (weekPlanOpen) renderWeekPlan();

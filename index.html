@@ -19,7 +19,7 @@
       </div>
       <nav class="nav" id="nav">
         <button class="nav-item active" data-view="todo" data-color="red">
-          <span class="nav-ico">⏰</span><span class="nav-label">今日待办</span>
+          <span class="nav-ico">⏰</span><span class="nav-label">日程安排</span>
         </button>
         <button class="nav-item" data-view="life" data-color="orange">
           <span class="nav-ico">🍊</span><span class="nav-label">元气日常</span>
@@ -82,7 +82,44 @@
 
         <!-- 今日待办（红） -->
         <div class="view active" id="view-todo">
-          <h2 class="view-title c-red">⏰ 今日待办</h2>
+          <h2 class="view-title c-red">⏰ 日程安排</h2>
+
+          <div class="notes-layout" id="todoMain">
+            <!-- 三只青蛙 -->
+            <div class="card">
+              <div class="card-head">🐸 三只青蛙 <span class="muted" id="frogCount"></span></div>
+              <ul class="frog-rows" id="frogRows">
+                <li class="todo-item frog" data-i="0"><input class="todo-check" type="checkbox" data-i="0" /><input class="frog-input" type="text" data-i="0" placeholder="第一只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="0" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="0" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="0" type="button" title="删除">✕</button></span></li>
+                <li class="todo-item frog" data-i="1"><input class="todo-check" type="checkbox" data-i="1" /><input class="frog-input" type="text" data-i="1" placeholder="第二只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="1" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="1" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="1" type="button" title="删除">✕</button></span></li>
+                <li class="todo-item frog" data-i="2"><input class="todo-check" type="checkbox" data-i="2" /><input class="frog-input" type="text" data-i="2" placeholder="第三只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="2" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="2" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="2" type="button" title="删除">✕</button></span></li>
+              </ul>
+            </div>
+            <!-- 今日时间轴（六时书用莲花标在轴上） -->
+            <div class="card card-wide">
+              <div class="card-head">🕐 今日时间轴 <span class="muted">6:00–22:00，每 30 分钟一格，点格子记一件事</span></div>
+              <div class="tl-tools">
+                <button class="tl-btn" id="tlCopyPrev" type="button" title="把前一天的安排复制过来">📋 复制前一天</button>
+                <button class="tl-btn" id="tlClear" type="button" title="清空这一整天的安排">🧹 清空这天</button>
+                <button class="tl-btn" id="tlStats" type="button" title="看看时间都花在哪了">📊 时间统计</button>
+              </div>
+              <div class="tl-stats" id="tlStatsBox" style="display:none"></div>
+              <div class="timeline" id="timeline"></div>
+            </div>
+            <!-- 其他待办 -->
+            <div class="card">
+              <div class="card-head">📝 其他待办 <span class="muted" id="todoCount"></span></div>
+              <form class="add-row" id="todoForm">
+                <input id="todoInput" placeholder="添加一项待办…" autocomplete="off" />
+                <button type="submit">＋</button>
+              </form>
+              <ul class="todo-list" id="todoList"></ul>
+            </div>
+            <!-- 灵光一现 -->
+            <div class="card">
+              <div class="card-head">💡 灵光一现</div>
+              <textarea id="noteArea" placeholder="突然想到的点子、一句触动你的话…（按日期自动保存）"></textarea>
+            </div>
+          </div>
 
           <div class="date-pick" data-tone="red">
             <span class="dp-label">📅 查看日期</span>
@@ -97,41 +134,6 @@
           </div>
 
           <div class="week-plan" id="weekPlan" style="display:none"></div>
-
-          <div class="notes-layout" id="todoMain">
-            <!-- 三只青蛙 -->
-            <div class="card">
-              <div class="card-head">🐸 三只青蛙 <span class="muted" id="frogCount"></span></div>
-              <ul class="frog-rows" id="frogRows">
-                <li class="todo-item frog" data-i="0"><input class="todo-check" type="checkbox" data-i="0" /><input class="frog-input" type="text" data-i="0" placeholder="第一只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="0" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="0" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="0" type="button" title="删除">✕</button></span></li>
-                <li class="todo-item frog" data-i="1"><input class="todo-check" type="checkbox" data-i="1" /><input class="frog-input" type="text" data-i="1" placeholder="第二只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="1" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="1" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="1" type="button" title="删除">✕</button></span></li>
-                <li class="todo-item frog" data-i="2"><input class="todo-check" type="checkbox" data-i="2" /><input class="frog-input" type="text" data-i="2" placeholder="第三只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="2" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="2" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="2" type="button" title="删除">✕</button></span></li>
-              </ul>
-            </div>
-            <!-- 其他待办 -->
-            <div class="card">
-              <div class="card-head">📝 其他待办 <span class="muted" id="todoCount"></span></div>
-              <form class="add-row" id="todoForm">
-                <input id="todoInput" placeholder="添加一项待办…" autocomplete="off" />
-                <button type="submit">＋</button>
-              </form>
-              <ul class="todo-list" id="todoList"></ul>
-            </div>
-            <!-- 今日时间轴（六时书用莲花标在轴上） -->
-            <div class="card card-wide">
-              <div class="card-head">🕐 今日时间轴 <span class="muted">6:00–22:00，每 30 分钟一格，点格子记一件事</span></div>
-              <div class="tl-tools">
-                <button class="tl-btn" id="tlCopyPrev" type="button" title="把前一天的安排复制过来">📋 复制前一天</button>
-                <button class="tl-btn" id="tlClear" type="button" title="清空这一整天的安排">🧹 清空这天</button>
-              </div>
-              <div class="timeline" id="timeline"></div>
-            </div>
-            <!-- 随手笔记 -->
-            <div class="card">
-              <div class="card-head">📒 随手笔记</div>
-              <textarea id="noteArea" placeholder="记点什么…（自动保存）"></textarea>
-            </div>
-          </div>
         </div>
 
         <!-- 待办·笔记（隐藏，保留知识库 DOM 供脚本） -->
