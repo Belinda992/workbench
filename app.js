@@ -138,7 +138,11 @@ async function syncPull() {
 // 云端数据覆盖本地后，统一重渲染一次
 function rerenderAll() {
   try {
+    tasks = loadTasks();          // 同步后重新读一份，避免内存里的旧数据
     renderTodos(); renderKb(); renderAutos(); renderKpis();
+    if (window.renderFrogs) renderFrogs();
+    if (window.renderTimeline) renderTimeline();
+    if (window.loadNoteFor) loadNoteFor(curTodoDate);
     if (window.renderChips) renderChips();
     if (window.renderEx) renderEx();
     if (window.renderWt) renderWt();
@@ -288,101 +292,454 @@ function barChart() {
 }
 $("#chartBar").innerHTML = barChart();
 
-// ---------- 三只青蛙（固定三行）----------
-let frogs = store.get("wb_frogs", []);
-while (frogs.length < 3) frogs.push({ done: false, text: "" });
-function saveFrogs() { store.set("wb_frogs", frogs.slice(0, 3)); }
+// ---------- 待办统一数据：三只青蛙 + 其他待办，都带日期 ----------
+function todoToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function todoShift(d, n) {
+  const [y, m, dd] = String(d).split("-").map(Number);
+  const t = new Date(y, m - 1, dd);
+  t.setDate(t.getDate() + n);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+}
+function todoLabel(d) {
+  const t = todoToday();
+  if (d === t) return "今天";
+  if (d === todoShift(t, -1)) return "昨天";
+  if (d === todoShift(t, 1)) return "明天";
+  const p = String(d).split("-");
+  return `${+p[1]}月${+p[2]}日`;
+}
+function todoWeekday(d) {
+  const [y, m, dd] = String(d).split("-").map(Number);
+  return new Date(y, m - 1, dd).getDay();
+}
+const WEEK_CN = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+function tdEsc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// 旧的无日期数据（wb_frogs / wb_todos）迁移到新的 wb_tasks，只跑一次
+function loadTasks() {
+  const saved = store.get("wb_tasks", null);
+  if (Array.isArray(saved)) return saved;
+  const list = [];
+  const t0 = todoToday();
+  const oldFrogs = store.get("wb_frogs", []);
+  if (Array.isArray(oldFrogs)) oldFrogs.forEach((f, i) => {
+    if (f && String(f.text || "").trim())
+      list.push({ id: "frog" + i + "_" + Date.now(), type: "frog", date: t0, text: f.text, done: !!f.done, ts: Date.now() + i });
+  });
+  const oldTodos = store.get("wb_todos", []);
+  if (Array.isArray(oldTodos)) oldTodos.forEach((t, i) => {
+    if (t && String(t.text || "").trim())
+      list.push({ id: t.id || "todo" + i + "_" + Date.now(), type: "todo", date: t0, text: t.text, done: !!t.done, ts: t.ts || Date.now() + i });
+  });
+  store.set("wb_tasks", list);
+  return list;
+}
+
+let tasks = loadTasks();
+let schedules = store.get("wb_schedules", []);
+let curTodoDate = todoToday();
+
+function saveTasks() { store.set("wb_tasks", tasks); }
+function saveSchedules() { store.set("wb_schedules", schedules); }
+const frogsOf = (d) => tasks.filter((t) => t.type === "frog" && t.date === d).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+const todosOf = (d) => tasks.filter((t) => t.type === "todo" && t.date === d).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+
+// 通用操作：完成 / 取消完成、延迟 N 天、删除
+function toggleTask(id) {
+  const t = tasks.find((x) => String(x.id) === String(id));
+  if (!t) return;
+  t.done = !t.done;
+  saveTasks(); renderTodoAll();
+  toast(t.done ? "完成 ✓" : "已取消完成");
+}
+function delayTask(id, days) {
+  const t = tasks.find((x) => String(x.id) === String(id));
+  if (!t) return;
+  t.date = todoShift(t.date || curTodoDate, days || 1);
+  t.done = false;
+  saveTasks(); renderTodoAll();
+  toast("已推迟到 " + todoLabel(t.date) + "（" + t.date + "）");
+}
+function delTask(id) {
+  const before = tasks.length;
+  tasks = tasks.filter((x) => String(x.id) !== String(id));
+  if (tasks.length === before) return;
+  saveTasks(); renderTodoAll();
+  toast("已删除");
+}
+
+// ---------- 三只青蛙（每天固定三行）----------
 function renderFrogCount() {
-  const done = frogs.filter((f) => f && f.done).length;
-  $("#frogCount").textContent = `（已吃 ${done}/3 只）`;
+  const list = frogsOf(curTodoDate);
+  const done = list.filter((f) => f.done).length;
+  $("#frogCount").textContent = `（已吃 ${done}/${Math.max(3, list.length)} 只）`;
+}
+function renderFrogs() {
+  const list = frogsOf(curTodoDate);
+  $$("#frogRows .todo-item").forEach((li) => {
+    const i = +li.dataset.i;
+    const f = list[i] || null;
+    const chk = li.querySelector(".todo-check");
+    const inp = li.querySelector(".frog-input");
+    chk.checked = !!(f && f.done);
+    inp.value = f ? f.text : "";
+    li.classList.toggle("done", !!(f && f.done));
+  });
+  renderFrogCount();
 }
 $$("#frogRows .todo-item").forEach((li) => {
   const i = +li.dataset.i;
-  const f = frogs[i] || { done: false, text: "" };
   const chk = li.querySelector(".todo-check");
   const inp = li.querySelector(".frog-input");
-  chk.checked = !!f.done;
-  inp.value = f.text || "";
   chk.addEventListener("change", () => {
-    frogs[i].done = chk.checked;
-    li.classList.toggle("done", chk.checked);
-    saveFrogs(); renderFrogCount();
+    const f = frogsOf(curTodoDate)[i];
+    if (!f) { chk.checked = false; toast("先写下这只青蛙～"); return; }
+    f.done = chk.checked; saveTasks(); renderFrogs();
   });
   inp.addEventListener("input", () => {
-    frogs[i].text = inp.value;
-    saveFrogs();
+    let f = frogsOf(curTodoDate)[i];
+    if (!f) {
+      if (!inp.value.trim()) return;
+      f = { id: "frog_" + Date.now() + "_" + i, type: "frog", date: curTodoDate, text: inp.value, done: false, ts: Date.now() };
+      tasks.push(f);
+    } else { f.text = inp.value; }
+    saveTasks(); renderFrogCount();
   });
+  li.querySelector(".ta-done").addEventListener("click", () => { const f = frogsOf(curTodoDate)[i]; if (f) toggleTask(f.id); });
+  li.querySelector(".ta-delay").addEventListener("click", () => { const f = frogsOf(curTodoDate)[i]; if (f) delayTask(f.id, 1); });
+  li.querySelector(".ta-del").addEventListener("click", () => { const f = frogsOf(curTodoDate)[i]; if (f) delTask(f.id); });
 });
-renderFrogCount();
 
-// ---------- 待办 ----------
-let todos = store.get("wb_todos", [
-  { id: 1, text: "示例：阅读 WorkBuddy 部署文档", done: false },
-  { id: 2, text: "示例：整理本周待办", done: true },
-]);
+// ---------- 其他待办 ----------
 function renderTodos() {
-  $("#todoList").innerHTML = todos.map((t) => `
+  const list = todosOf(curTodoDate);
+  $("#todoList").innerHTML = list.length
+    ? list.map((t) => `
     <li class="todo-item ${t.done ? "done" : ""}" data-id="${t.id}">
       <input class="todo-check" type="checkbox" ${t.done ? "checked" : ""}/>
-      <span class="todo-text">${t.text}</span>
-      <button class="todo-del">✕</button>
-    </li>`).join("");
-  const left = todos.filter((t) => !t.done).length;
-  $("#todoCount").textContent = `（剩 ${left} 项）`;
-  $$("#todoList .todo-item").forEach((li) => {
-    const id = +li.dataset.id;
-    li.querySelector(".todo-check").addEventListener("change", () => {
-      const t = todos.find((x) => x.id === id); t.done = !t.done; saveTodos();
-    });
-    li.querySelector(".todo-del").addEventListener("click", () => {
-      todos = todos.filter((x) => x.id !== id); saveTodos();
-    });
-  });
+      <span class="todo-text">${tdEsc(t.text)}</span>
+      <span class="todo-acts">
+        <button class="ta-btn ta-done" data-id="${t.id}" type="button" title="完成 / 取消完成">✓</button>
+        <button class="ta-btn ta-delay" data-id="${t.id}" type="button" title="延迟到第二天">»</button>
+        <button class="ta-btn ta-del" data-id="${t.id}" type="button" title="删除">✕</button>
+      </span>
+    </li>`).join("")
+    : '<li class="muted empty-tip">这天还没有待办</li>';
+  const left = list.filter((t) => !t.done).length;
+  $("#todoCount").textContent = list.length ? `（剩 ${left} 项）` : "";
+  $$("#todoList .todo-check").forEach((c) =>
+    c.addEventListener("change", () => toggleTask(c.closest(".todo-item").dataset.id))
+  );
+  $$("#todoList .ta-done").forEach((b) => b.addEventListener("click", () => toggleTask(b.dataset.id)));
+  $$("#todoList .ta-delay").forEach((b) => b.addEventListener("click", () => delayTask(b.dataset.id, 1)));
+  $$("#todoList .ta-del").forEach((b) => b.addEventListener("click", () => delTask(b.dataset.id)));
 }
-function saveTodos() { store.set("wb_todos", todos); renderTodos(); }
 $("#todoForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const v = $("#todoInput").value.trim();
   if (!v) return;
-  todos.unshift({ id: Date.now(), text: v, done: false });
-  $("#todoInput").value = ""; saveTodos();
+  tasks.push({ id: "todo_" + Date.now(), type: "todo", date: curTodoDate, text: v, done: false, ts: Date.now() });
+  $("#todoInput").value = "";
+  saveTasks(); renderTodos();
 });
-renderTodos();
 
-// ---------- 笔记 ----------
-const noteArea = $("#noteArea");
-noteArea.value = store.get("wb_note", "");
-noteArea.addEventListener("input", () => store.set("wb_note", noteArea.value));
-
-// ---------- 六时书（选种子）----------
+// ---------- 今日时间轴（6:00–22:00，30 分钟一格）----------
+const TL_START = 6 * 60, TL_END = 22 * 60, TL_STEP = 30;
+const TL_SIX = [8, 10, 12, 14, 16, 18];            // 六时书的六个整点
+const TL_ICONS = [
+  { key: "frog",  icon: "🐸", label: "要事（青蛙）" },
+  { key: "cal",   icon: "📅", label: "固定日程" },
+  { key: "rest",  icon: "☕", label: "休息" },
+  { key: "meal",  icon: "🍚", label: "吃饭" },
+  { key: "pomo",  icon: "🍅", label: "番茄钟" },
+  { key: "other", icon: "✨", label: "其他" },
+];
 const SIX_SEEDS = ["慷慨", "诚实", "随喜", "慈悲", "和谐", "温柔语", "正见", "保护生命", "尊重他人", "感恩", "耐心", "专注"];
 const SIX_SEED_HINT = {
-  "慷慨": "给予他人的时间、能力、微笑",
-  "诚实": "答应别人的事一定做到",
-  "随喜": "真心为他人好事感到开心",
-  "慈悲": "不生气，善待身边人",
-  "和谐": "不搬弄是非，化解矛盾",
-  "温柔语": "好好说话，不伤人",
-  "正见": "保持正确的世界观",
-  "保护生命": "护生、早睡、爱惜身体",
-  "尊重他人": "尊重财物与边界",
-  "感恩": "感恩已拥有的一切",
-  "耐心": "不急躁，从容行事",
-  "专注": "一次只做好一件事",
+  "慷慨": "给予他人的时间、能力、微笑", "诚实": "答应别人的事一定做到",
+  "随喜": "真心为他人好事感到开心", "慈悲": "不生气，善待身边人",
+  "和谐": "不搬弄是非，化解矛盾", "温柔语": "好好说话，不伤人",
+  "正见": "保持正确的世界观", "保护生命": "护生、早睡、爱惜身体",
+  "尊重他人": "尊重财物与边界", "感恩": "感恩已拥有的一切",
+  "耐心": "不急躁，从容行事", "专注": "一次只做好一件事",
 };
-for (let i = 0; i < 6; i++) {
-  const sel = $("#sixBook .six-seed[data-i=\"" + i + "\"]");
-  if (!sel) continue;
-  sel.innerHTML = '<option value="">— 选一颗种子 —</option>' +
-    SIX_SEEDS.map((s) => `<option value="${s}" title="${SIX_SEED_HINT[s] || ""}">${s}</option>`).join("");
-  sel.value = store.get("wb_six_seed_" + i, "");
-  sel.addEventListener("change", () => store.set("wb_six_seed_" + i, sel.value));
-  const note = $("#sixBook .six-note[data-i=\"" + i + "\"]");
-  if (note) {
-    note.value = store.get("wb_six_note_" + i, "");
-    note.addEventListener("input", () => store.set("wb_six_note_" + i, note.value));
-  }
+
+function slotKey(min) {
+  return String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0");
 }
+function tlKey(d) { return "wb_tl_" + d; }
+function loadTl(d) { return store.get(tlKey(d), null) || {}; }
+function saveTl(d, data) { store.set(tlKey(d), data); }
+function sixKey(d) { return "wb_six_" + d; }
+function loadSixData(d) {
+  const raw = store.get(sixKey(d), null);
+  if (raw && (raw.seeds || raw.notes)) return { seeds: raw.seeds || [], notes: raw.notes || [] };
+  if (d === todoToday()) {   // 旧的无日期六时书，只在今天迁移一次
+    const seeds = [], notes = [];
+    let has = false;
+    for (let i = 0; i < 6; i++) {
+      const s = store.get("wb_six_seed_" + i, "");
+      const n = store.get("wb_six_note_" + i, "");
+      if (s || n) has = true;
+      seeds.push(s); notes.push(n);
+    }
+    if (has) { const data = { seeds: seeds, notes: notes }; store.set(sixKey(d), data); return data; }
+  }
+  return { seeds: [], notes: [] };
+}
+function saveSixAt(i, field, value) {
+  const data = loadSixData(curTodoDate);
+  data[field][i] = value;
+  store.set(sixKey(curTodoDate), data);
+}
+
+function renderTimeline() {
+  const data = loadTl(curTodoDate);
+  const six = loadSixData(curTodoDate);
+  let html = "";
+  for (let m = TL_START; m < TL_END; m += TL_STEP) {
+    const key = slotKey(m);
+    const isHour = m % 60 === 0;
+    const sixIdx = TL_SIX.indexOf(Math.floor(m / 60));
+    const isSix = sixIdx !== -1 && isHour;
+    const item = data[key] || null;
+    const ico = item ? (TL_ICONS.find((x) => x.key === item.icon) || TL_ICONS[5]) : null;
+    const seed = isSix ? (six.seeds[sixIdx] || "") : "";
+    const sNote = isSix ? (six.notes[sixIdx] || "") : "";
+    html += `<div class="tl-row ${isHour ? "is-hour" : ""} ${isSix ? "is-six" : ""}" data-key="${key}">
+      <div class="tl-time">${isHour ? key : ""}</div>
+      <div class="tl-axis"><span class="tl-dot"></span></div>
+      <div class="tl-body">
+        ${isSix ? `<span class="tl-lotus ${seed ? "on" : ""}" data-idx="${sixIdx}">🪷 ${seed ? tdEsc(seed) + (sNote ? " · " + tdEsc(sNote) : "") : "六时书"}</span>` : ""}
+        ${item ? `<span class="tl-item"><span class="tl-ico">${ico.icon}</span><span class="tl-text">${tdEsc(item.text)}</span><button class="tl-x" data-key="${key}" type="button" title="清除">✕</button></span>` : '<span class="tl-empty"></span>'}
+      </div>
+    </div>`;
+  }
+  $("#timeline").innerHTML = html;
+  $$("#timeline .tl-row").forEach((row) => {
+    row.addEventListener("click", (e) => {
+      const x = e.target.closest(".tl-x");
+      if (x) {
+        const d = loadTl(curTodoDate); delete d[x.dataset.key];
+        saveTl(curTodoDate, d); renderTimeline(); return;
+      }
+      const lotus = e.target.closest(".tl-lotus");
+      if (lotus) { openSixEditor(+lotus.dataset.idx); return; }
+      openSlotEditor(row.dataset.key);
+    });
+  });
+}
+function closeTlEditors() { $$("#timeline .tl-editor").forEach((b) => b.remove()); }
+
+// 点一格：选图标 + 写事情
+function openSlotEditor(key) {
+  closeTlEditors();
+  const row = document.querySelector('#timeline .tl-row[data-key="' + key + '"]');
+  if (!row) return;
+  const cur = loadTl(curTodoDate)[key] || { icon: "other", text: "" };
+  const box = document.createElement("div");
+  box.className = "tl-editor";
+  box.innerHTML =
+    '<div class="tle-icons">' +
+    TL_ICONS.map((ic) => `<button type="button" class="tle-ico ${ic.key === cur.icon ? "on" : ""}" data-icon="${ic.key}" title="${ic.label}">${ic.icon}</button>`).join("") +
+    '</div>' +
+    `<input class="tle-text" type="text" value="${tdEsc(cur.text)}" placeholder="这一格要做什么…" />` +
+    '<div class="tle-acts"><button type="button" class="tle-save">保存</button><button type="button" class="tle-cancel">取消</button>' +
+    (cur.text ? '<button type="button" class="tle-del">清除</button>' : "") + "</div>";
+  row.parentNode.insertBefore(box, row.nextSibling);
+  let icon = cur.icon;
+  box.querySelectorAll(".tle-ico").forEach((b) =>
+    b.addEventListener("click", () => {
+      icon = b.dataset.icon;
+      box.querySelectorAll(".tle-ico").forEach((x) => x.classList.toggle("on", x === b));
+    })
+  );
+  box.querySelector(".tle-save").addEventListener("click", () => {
+    const text = box.querySelector(".tle-text").value.trim();
+    const d = loadTl(curTodoDate);
+    if (text) d[key] = { icon: icon, text: text }; else delete d[key];
+    saveTl(curTodoDate, d); renderTimeline();
+  });
+  box.querySelector(".tle-cancel").addEventListener("click", () => box.remove());
+  const del = box.querySelector(".tle-del");
+  if (del) del.addEventListener("click", () => {
+    const d = loadTl(curTodoDate); delete d[key];
+    saveTl(curTodoDate, d); renderTimeline();
+  });
+  const inp = box.querySelector(".tle-text");
+  inp.focus();
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") box.querySelector(".tle-save").click(); });
+}
+
+// 点莲花：种下这一时的好种子
+function openSixEditor(idx) {
+  closeTlEditors();
+  const row = document.querySelectorAll("#timeline .tl-row.is-six")[idx];
+  if (!row) return;
+  const six = loadSixData(curTodoDate);
+  const box = document.createElement("div");
+  box.className = "tl-editor six";
+  box.innerHTML =
+    `<div class="tle-head">🪷 六时书 · ${TL_SIX[idx]}:00</div>` +
+    '<select class="tle-seed"><option value="">— 选一颗种子 —</option>' +
+    SIX_SEEDS.map((s) => `<option value="${s}" ${six.seeds[idx] === s ? "selected" : ""} title="${SIX_SEED_HINT[s] || ""}">${s}</option>`).join("") +
+    "</select>" +
+    `<input class="tle-note" type="text" value="${tdEsc(six.notes[idx] || "")}" placeholder="具体一件好事 / 行动（可选）" />` +
+    '<div class="tle-acts"><button type="button" class="tle-save">保存</button><button type="button" class="tle-cancel">取消</button></div>';
+  row.parentNode.insertBefore(box, row.nextSibling);
+  box.querySelector(".tle-save").addEventListener("click", () => {
+    const seed = box.querySelector(".tle-seed").value;
+    const note = box.querySelector(".tle-note").value.trim();
+    saveSixAt(idx, "seeds", seed);
+    saveSixAt(idx, "notes", note);
+    renderTimeline();
+    toast(seed ? "「" + seed + "」已种下 🪷" : "六时书已更新");
+  });
+  box.querySelector(".tle-cancel").addEventListener("click", () => box.remove());
+}
+
+$("#tlCopyPrev").addEventListener("click", () => {
+  const prev = todoShift(curTodoDate, -1);
+  const src = loadTl(prev);
+  if (!Object.keys(src).length) { toast(todoLabel(prev) + "没有安排可复制"); return; }
+  const cur = loadTl(curTodoDate);
+  let n = 0;
+  Object.keys(src).forEach((k) => { if (!cur[k]) { cur[k] = src[k]; n++; } });
+  saveTl(curTodoDate, cur); renderTimeline();
+  toast(n ? "已复制 " + n + " 条到" + todoLabel(curTodoDate) : "这天已经有安排了");
+});
+$("#tlClear").addEventListener("click", () => {
+  if (!Object.keys(loadTl(curTodoDate)).length) { toast("这天本来就是空的"); return; }
+  if (!confirm("清空 " + todoLabel(curTodoDate) + "（" + curTodoDate + "）的所有时间安排？")) return;
+  saveTl(curTodoDate, {}); renderTimeline();
+  toast("已清空");
+});
+
+// ---------- 查看日期切换 ----------
+let weekPlanOpen = false;
+function renderTodoAll() {
+  renderFrogs();
+  renderTodos();
+  renderTimeline();
+  if (weekPlanOpen) renderWeekPlan();
+}
+function setTodoDate(d) {
+  curTodoDate = d;
+  $("#todoDate").value = d;
+  const hint = $("#todoDateHint");
+  if (hint) hint.textContent = d === todoToday() ? "" : "正在看 " + todoLabel(d) + "（" + d + "）";
+  renderFrogs(); renderTodos(); renderTimeline();
+  loadNoteFor(d);
+  if (weekPlanOpen) renderWeekPlan();
+}
+$("#todoDate").addEventListener("change", () => {
+  if ($("#todoDate").value) setTodoDate($("#todoDate").value);
+  else $("#todoDate").value = curTodoDate;
+});
+$("#todoPrevDay").addEventListener("click", () => setTodoDate(todoShift(curTodoDate, -1)));
+$("#todoNextDay").addEventListener("click", () => setTodoDate(todoShift(curTodoDate, 1)));
+document.querySelectorAll("#view-todo .dp-quick").forEach((b) =>
+  b.addEventListener("click", () => setTodoDate(todoShift(todoToday(), +b.dataset.d)))
+);
+$("#btnWeekPlan").addEventListener("click", () => {
+  weekPlanOpen = !weekPlanOpen;
+  $("#weekPlan").style.display = weekPlanOpen ? "block" : "none";
+  const main = $("#todoMain");
+  if (main) main.style.display = weekPlanOpen ? "none" : "";
+  $("#btnWeekPlan").textContent = weekPlanOpen ? "← 回到当天" : "📅 周计划";
+  if (weekPlanOpen) renderWeekPlan();
+});
+
+// ---------- 周计划：一次把七天排好 ----------
+function weekStart(d) {
+  return todoShift(d, -((todoWeekday(d) + 6) % 7));   // 周一当第一天
+}
+function renderWeekPlan() {
+  const start = weekStart(curTodoDate);
+  let html = '<div class="wp-head">🗓️ 一周排程（' + start + " 起，改完自动存）</div>";
+  html += '<div class="wp-grid">';
+  for (let i = 0; i < 7; i++) {
+    const d = todoShift(start, i);
+    const fr = frogsOf(d);
+    const td = todosOf(d);
+    const isToday = d === todoToday();
+    const isCur = d === curTodoDate;
+    html += `<div class="wp-day ${isToday ? "is-today" : ""} ${isCur ? "is-cur" : ""}">
+      <div class="wp-dayhead">
+        <b>${WEEK_CN[todoWeekday(d)]}</b>
+        <span class="wp-date">${d.slice(5)}${isToday ? " · 今天" : ""}</span>
+        <span class="wp-jump" data-date="${d}">看这天 →</span>
+      </div>
+      <div class="wp-sec">🐸 青蛙</div>
+      ${[0, 1, 2].map((k) => `<input class="wp-frog" type="text" data-date="${d}" data-k="${k}" value="${tdEsc(fr[k] ? fr[k].text : "")}" placeholder="青蛙 ${k + 1}" />`).join("")}
+      <div class="wp-sec">📝 待办（一行一条）</div>
+      <textarea class="wp-todo" data-date="${d}" placeholder="一行一条">${tdEsc(td.map((t) => t.text).join("\n"))}</textarea>
+    </div>`;
+  }
+  html += "</div>";
+  $("#weekPlan").innerHTML = html;
+
+  $$("#weekPlan .wp-frog").forEach((inp) => {
+    inp.addEventListener("change", () => {
+      const d = inp.dataset.date, k = +inp.dataset.k;
+      const fr = frogsOf(d);
+      const f = fr[k];
+      const v = inp.value.trim();
+      if (!f) {
+        if (!v) return;
+        tasks.push({ id: "frog_" + Date.now() + "_" + k, type: "frog", date: d, text: v, done: false, ts: Date.now() + k });
+      } else if (!v) {
+        tasks = tasks.filter((x) => String(x.id) !== String(f.id));
+      } else { f.text = v; }
+      saveTasks();
+      renderFrogs();
+      if (weekPlanOpen) renderWeekPlan();
+    });
+  });
+  $$("#weekPlan .wp-todo").forEach((ta) => {
+    ta.addEventListener("change", () => {
+      const d = ta.dataset.date;
+      const lines = ta.value.split("\n").map((s) => s.trim()).filter(Boolean);
+      const old = todosOf(d);
+      const keep = [];
+      lines.forEach((line, i) => {
+        const exist = old[i];
+        if (exist) { exist.text = line; keep.push(String(exist.id)); }
+        else tasks.push({ id: "todo_" + Date.now() + "_" + i, type: "todo", date: d, text: line, done: false, ts: Date.now() + i });
+      });
+      old.forEach((o) => {
+        if (keep.indexOf(String(o.id)) === -1) tasks = tasks.filter((x) => String(x.id) !== String(o.id));
+      });
+      saveTasks(); renderTodos();
+      if (weekPlanOpen) renderWeekPlan();
+    });
+  });
+  $$("#weekPlan .wp-jump").forEach((b) =>
+    b.addEventListener("click", () => {
+      setTodoDate(b.dataset.date);
+      $("#btnWeekPlan").click();
+    })
+  );
+}
+renderTodos();
+
+// ---------- 随手笔记（按日期各存一份）----------
+const noteArea = $("#noteArea");
+if (store.get("wb_note", null) && !store.get("wb_note_" + todoToday(), null)) {
+  store.set("wb_note_" + todoToday(), store.get("wb_note", ""));   // 旧笔记迁到今天
+}
+function loadNoteFor(d) {
+  noteArea.value = store.get("wb_note_" + d, "");
+}
+noteArea.addEventListener("input", () => store.set("wb_note_" + curTodoDate, noteArea.value));
+
+// 统一初始化：青蛙 / 待办 / 时间轴 / 笔记 都按当天渲染
+setTodoDate(curTodoDate);
 
 // ---------- 知识库 ----------
 let kbs = store.get("wb_kb", [

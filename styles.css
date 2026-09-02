@@ -358,6 +358,110 @@ body {
 .entry:hover { border-color: var(--green); background: #f3faf5; }
 /* 正在记录的这天：左边加色条，一眼就能看到 */
 .entry.today { border-color: var(--brand); background: #f3faf5; box-shadow: inset 3px 0 0 var(--brand); }
+.date-pick[data-tone="red"] .dp-quick:hover { background: var(--c-red-soft); border-color: var(--c-red); color: var(--c-red); }
+
+/* 待办 / 青蛙每条右边的操作按钮 */
+.todo-item { display: flex; align-items: center; gap: 8px; }
+.todo-acts { display: inline-flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+.ta-btn {
+  width: 26px; height: 26px; border: 1px solid var(--line); background: #fff;
+  border-radius: 7px; cursor: pointer; font-size: 12px; line-height: 1;
+  color: var(--muted); font-family: inherit; transition: .12s;
+}
+.ta-btn:hover { background: #f1f2f5; color: var(--text); }
+.ta-btn.ta-done:hover { background: #e6f7ef; color: var(--green); border-color: var(--green); }
+.ta-btn.ta-delay:hover { background: #fff4e5; color: #b26a00; border-color: #f0c98a; }
+.ta-btn.ta-del:hover { background: #fdeaea; color: #c04747; border-color: #f0b3b3; }
+.empty-tip { font-size: 13px; padding: 10px 2px; }
+
+/* ===== 今日时间轴（30 分钟一格）===== */
+.tl-tools { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.tl-btn {
+  padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: #fff; color: var(--text); font-size: 12.5px; cursor: pointer; font-family: inherit;
+}
+.tl-btn:hover { background: #f1f2f5; }
+.timeline { display: flex; flex-direction: column; }
+.tl-row { display: flex; align-items: stretch; min-height: 34px; cursor: pointer; border-radius: 8px; transition: background .12s; }
+.tl-row:hover { background: #fafbfd; }
+.tl-time {
+  width: 46px; flex-shrink: 0; font-size: 12px; color: var(--muted);
+  padding: 8px 8px 0 0; text-align: right; font-variant-numeric: tabular-nums;
+}
+.tl-axis { width: 16px; flex-shrink: 0; position: relative; display: flex; justify-content: center; }
+.tl-axis::before { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.tl-dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; border: 2px solid var(--line); margin-top: 12px; z-index: 1; }
+.tl-row.is-hour .tl-dot { background: var(--muted); }
+.tl-row.is-six .tl-dot { border-color: #e8a0c0; background: #f7c8dc; }
+.tl-body { flex: 1; padding: 4px 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 34px; }
+.tl-item {
+  display: inline-flex; align-items: center; gap: 6px; background: #f6f8fb;
+  border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 13px; max-width: 100%;
+}
+.tl-ico { font-size: 14px; }
+.tl-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-x { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; padding: 0 2px; }
+.tl-x:hover { color: #e05a5a; }
+.tl-empty { display: block; width: 100%; min-height: 24px; }
+.tl-row:hover .tl-empty::after { content: "＋ 记一笔"; font-size: 12px; color: #b9c0cd; }
+
+/* 莲花 = 六时书节点 */
+.tl-row.is-six { background: #fffafb; }
+.tl-row.is-six:hover { background: #fff3f7; }
+.tl-lotus {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px;
+  background: #fdeef4; color: #a8557a; border: 1px solid #f7d9e6;
+  border-radius: 20px; padding: 3px 10px; cursor: pointer;
+}
+.tl-lotus.on { background: #f9d5e5; color: #8b3a5e; font-weight: 600; }
+
+/* 点开一格后的小编辑面板 */
+.tl-editor {
+  margin: 4px 0 10px 62px; padding: 12px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.tle-head { font-size: 13px; font-weight: 700; }
+.tle-icons { display: flex; gap: 6px; flex-wrap: wrap; }
+.tle-ico {
+  width: 40px; height: 34px; font-size: 17px; border: 1px solid var(--line);
+  background: #fff; border-radius: 8px; cursor: pointer; transition: .12s;
+}
+.tle-ico:hover { background: #f1f2f5; }
+.tle-ico.on { border-color: var(--brand); background: #e9f7f0; box-shadow: 0 0 0 2px rgba(46,158,94,.12); }
+.tle-text, .tle-note, .tle-seed {
+  padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13.5px; font-family: inherit; outline: none; background: #fff; color: var(--text);
+}
+.tle-text:focus, .tle-note:focus, .tle-seed:focus { border-color: var(--brand); }
+.tle-acts { display: flex; gap: 8px; }
+.tle-acts button { padding: 7px 14px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.tle-save { background: var(--brand); color: #fff; }
+.tle-cancel { background: #eef0f5; color: var(--text); }
+.tle-del { background: #fdeaea; color: #c04747; }
+
+/* ===== 周计划：一次排七天 ===== */
+.week-plan { margin-bottom: 18px; }
+.wp-head { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+.wp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.wp-day {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 6px;
+}
+.wp-day.is-today { border-color: #f0c98a; box-shadow: inset 3px 0 0 var(--c-orange); }
+.wp-day.is-cur { background: #fffbf5; }
+.wp-dayhead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wp-dayhead b { font-size: 13.5px; }
+.wp-date { font-size: 11.5px; color: var(--muted); }
+.wp-jump { margin-left: auto; font-size: 11.5px; color: var(--brand); cursor: pointer; font-weight: 600; }
+.wp-jump:hover { text-decoration: underline; }
+.wp-sec { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.wp-frog, .wp-todo {
+  padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px;
+  font-size: 12.5px; font-family: inherit; outline: none; background: #fff; color: var(--text); width: 100%;
+}
+.wp-frog:focus, .wp-todo:focus { border-color: var(--brand); }
+.wp-todo { min-height: 64px; resize: vertical; line-height: 1.5; }
 .entry-photo { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .entry-body { flex: 1; }
 .entry-meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }

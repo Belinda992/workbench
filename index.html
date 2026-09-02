@@ -83,14 +83,29 @@
         <!-- 今日待办（红） -->
         <div class="view active" id="view-todo">
           <h2 class="view-title c-red">⏰ 今日待办</h2>
-          <div class="notes-layout">
+
+          <div class="date-pick" data-tone="red">
+            <span class="dp-label">📅 查看日期</span>
+            <button class="dp-nav" id="todoPrevDay" type="button" title="前一天">‹</button>
+            <input type="date" id="todoDate" />
+            <button class="dp-nav" id="todoNextDay" type="button" title="后一天">›</button>
+            <button class="dp-quick" data-d="-1" type="button">昨天</button>
+            <button class="dp-quick" data-d="0" type="button">今天</button>
+            <button class="dp-quick" data-d="1" type="button">明天</button>
+            <button class="dp-toggle" id="btnWeekPlan" type="button">📅 周计划</button>
+            <span class="dp-hint" id="todoDateHint"></span>
+          </div>
+
+          <div class="week-plan" id="weekPlan" style="display:none"></div>
+
+          <div class="notes-layout" id="todoMain">
             <!-- 三只青蛙 -->
             <div class="card">
               <div class="card-head">🐸 三只青蛙 <span class="muted" id="frogCount"></span></div>
               <ul class="frog-rows" id="frogRows">
-                <li class="todo-item frog" data-i="0"><input class="todo-check" type="checkbox" data-i="0" /><input class="frog-input" type="text" data-i="0" placeholder="第一只青蛙：今天最要紧的事" /></li>
-                <li class="todo-item frog" data-i="1"><input class="todo-check" type="checkbox" data-i="1" /><input class="frog-input" type="text" data-i="1" placeholder="第二只青蛙：今天最要紧的事" /></li>
-                <li class="todo-item frog" data-i="2"><input class="todo-check" type="checkbox" data-i="2" /><input class="frog-input" type="text" data-i="2" placeholder="第三只青蛙：今天最要紧的事" /></li>
+                <li class="todo-item frog" data-i="0"><input class="todo-check" type="checkbox" data-i="0" /><input class="frog-input" type="text" data-i="0" placeholder="第一只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="0" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="0" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="0" type="button" title="删除">✕</button></span></li>
+                <li class="todo-item frog" data-i="1"><input class="todo-check" type="checkbox" data-i="1" /><input class="frog-input" type="text" data-i="1" placeholder="第二只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="1" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="1" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="1" type="button" title="删除">✕</button></span></li>
+                <li class="todo-item frog" data-i="2"><input class="todo-check" type="checkbox" data-i="2" /><input class="frog-input" type="text" data-i="2" placeholder="第三只青蛙：今天最要紧的事" /><span class="todo-acts"><button class="ta-btn ta-done" data-i="2" type="button" title="完成 / 取消完成">✓</button><button class="ta-btn ta-delay" data-i="2" type="button" title="延迟到第二天">»</button><button class="ta-btn ta-del" data-i="2" type="button" title="删除">✕</button></span></li>
               </ul>
             </div>
             <!-- 其他待办 -->
@@ -102,17 +117,14 @@
               </form>
               <ul class="todo-list" id="todoList"></ul>
             </div>
-            <!-- 六时书 -->
+            <!-- 今日时间轴（六时书用莲花标在轴上） -->
             <div class="card card-wide">
-              <div class="card-head">🕐 六时书 · 选一颗种子，按时种下 <span class="muted">（8:00 / 10:00 / 12:00 / 14:00 / 16:00 / 18:00）</span></div>
-              <div class="sixbook" id="sixBook">
-                <div class="six-slot"><label>🌅 8:00</label><select class="six-seed" data-i="0"></select><input class="six-note" type="text" data-i="0" placeholder="具体一件好事 / 行动（可选）" /></div>
-                <div class="six-slot"><label>☀️ 10:00</label><select class="six-seed" data-i="1"></select><input class="six-note" type="text" data-i="1" placeholder="具体一件好事 / 行动（可选）" /></div>
-                <div class="six-slot"><label>🍱 12:00</label><select class="six-seed" data-i="2"></select><input class="six-note" type="text" data-i="2" placeholder="具体一件好事 / 行动（可选）" /></div>
-                <div class="six-slot"><label>🌤️ 14:00</label><select class="six-seed" data-i="3"></select><input class="six-note" type="text" data-i="3" placeholder="具体一件好事 / 行动（可选）" /></div>
-                <div class="six-slot"><label>🌆 16:00</label><select class="six-seed" data-i="4"></select><input class="six-note" type="text" data-i="4" placeholder="具体一件好事 / 行动（可选）" /></div>
-                <div class="six-slot"><label>🌙 18:00</label><select class="six-seed" data-i="5"></select><input class="six-note" type="text" data-i="5" placeholder="具体一件好事 / 行动（可选）" /></div>
+              <div class="card-head">🕐 今日时间轴 <span class="muted">6:00–22:00，每 30 分钟一格，点格子记一件事</span></div>
+              <div class="tl-tools">
+                <button class="tl-btn" id="tlCopyPrev" type="button" title="把前一天的安排复制过来">📋 复制前一天</button>
+                <button class="tl-btn" id="tlClear" type="button" title="清空这一整天的安排">🧹 清空这天</button>
               </div>
+              <div class="timeline" id="timeline"></div>
             </div>
             <!-- 随手笔记 -->
             <div class="card">
