@@ -71,16 +71,42 @@ function bindDatePick(opts) {
   );
 }
 
+// 最近一次有记录的非当前日期（元气日常，用于引导找回历史记录）
+function recentLifeRecordDate() {
+  const keys = [LS.ex, LS.wt, LS.st, LS.jr];
+  const dates = new Set();
+  keys.forEach((k) => {
+    const v = store.get(k, null);
+    if (Array.isArray(v)) v.forEach((e) => e.date && dates.add(e.date));
+    else if (v && typeof v === "object") Object.keys(v).forEach((d) => dates.add(d));
+  });
+  return [...dates].sort((a, b) => b.localeCompare(a)).find((d) => d !== curLifeDate) || null;
+}
+
 // 更新元气日常日期选择条的状态提示
 function syncLifeDateUI() {
   const el = document.getElementById("lifeDate");
   if (el) el.value = curLifeDate;
   const hint = document.getElementById("lifeDateHint");
-  if (hint) hint.textContent = curLifeDate === todayStr() ? "" : `补录 ${dateLabel(curLifeDate)}（${curLifeDate}）`;
+  if (hint) {
+    if (curLifeDate === todayStr()) {
+      const r = recentLifeRecordDate();
+      hint.textContent = r ? `📌 你最近一次记录在 ${dateLabel(r)}（${r}），点上方「${dateLabel(r)}」可查看/补录` : "";
+    } else {
+      hint.textContent = `补录 ${dateLabel(curLifeDate)}（${curLifeDate}）`;
+    }
+  }
   const jt = document.getElementById("jrHeadTitle");
   if (jt) jt.textContent = curLifeDate === todayStr() ? "当日日记" : `${dateLabel(curLifeDate)}日记`;
   const jh = document.getElementById("jrHeadHint");
   if (jh) jh.textContent = curLifeDate === todayStr() ? "模板式" : `补录 ${curLifeDate}`;
+}
+
+// 最近一次有记录的非当前日期（用于引导用户找回历史记录）
+function recentXmRecordDate() {
+  const list = store.get(LS.xm, []);
+  const dates = [...new Set(list.map((x) => x.date))].sort((a, b) => b.localeCompare(a));
+  return dates.find((d) => d !== curXmDate) || null;
 }
 
 // 更新小满日期选择条的状态提示
@@ -89,7 +115,16 @@ function syncXmDateUI() {
   if (el) el.value = curXmDate;
   const has = store.get(LS.xm, []).some((x) => x.date === curXmDate);
   const hint = document.getElementById("xmDateHint");
-  if (hint) hint.textContent = has ? `已有记录，保存会更新` : `这天还没有记录`;
+  if (hint) {
+    if (has) {
+      hint.textContent = `已有记录，保存会更新`;
+    } else {
+      const r = recentXmRecordDate();
+      hint.textContent = r
+        ? `这天还没有记录 · 📌 你最近一次记录在 ${dateLabel(r)}（${r}），点上方「${dateLabel(r)}」可查看/补录`
+        : `这天还没有记录`;
+    }
+  }
   const ht = document.getElementById("xmHeadTitle");
   if (ht) ht.textContent = curXmDate === todayStr() ? "今日记录" : `${dateLabel(curXmDate)}记录`;
   const hh = document.getElementById("xmHeadHint");
