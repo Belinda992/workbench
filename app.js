@@ -484,15 +484,21 @@ function iconOf(key) {
          TL_ICONS.find((x) => x.key === (TL_LEGACY[key] || "")) ||
          TL_ICONS[TL_ICONS.length - 1];
 }
-const SIX_SEEDS = ["慷慨", "诚实", "随喜", "慈悲", "和谐", "温柔语", "正见", "保护生命", "尊重他人", "感恩", "耐心", "专注"];
-const SIX_SEED_HINT = {
-  "慷慨": "给予他人的时间、能力、微笑", "诚实": "答应别人的事一定做到",
-  "随喜": "真心为他人好事感到开心", "慈悲": "不生气，善待身边人",
-  "和谐": "不搬弄是非，化解矛盾", "温柔语": "好好说话，不伤人",
-  "正见": "保持正确的世界观", "保护生命": "护生、早睡、爱惜身体",
-  "尊重他人": "尊重财物与边界", "感恩": "感恩已拥有的一切",
-  "耐心": "不急躁，从容行事", "专注": "一次只做好一件事",
-};
+// 六时书种子体系（来自《种子葵花宝典》）：6 棵大种子，每棵含若干小种子
+// 六个时段 8/10/12/14/16/18 依次对应这 6 棵大种子；选种子时先定大种子，再选小种子
+const TL_BIG_SEEDS = [
+  { name: "爱护生命",     seeds: ["保护身体", "爱护动物", "意识宁静", "提升能量", "好好吃饭", "觉察自己", "消除病痛", "怀上宝宝", "恋爱成功", "消除病毒", "提升免疫力", "整理清扫"] },
+  { name: "慷慨大度",     seeds: ["慷慨金钱", "慷慨时间", "财富关系", "满愿", "提前", "快速成交", "资源链接", "考试通过", "房子售出"] },
+  { name: "有觉知的语言", seeds: ["柔和的语言", "和谐的语言", "有意义的语言", "诚实的语言", "感恩", "赋能孩子"] },
+  { name: "有意义的行为", seeds: ["尊重他人关系", "自我成长", "庆贺他人", "发现身边的美好", "工作积极", "做好家务", "脱瘾而出", "培养灵感", "记录六时书", "夫妻恩爱", "创造财富", "运营企业", "培养习惯", "实现梦想"] },
+  { name: "同情他人不幸", seeds: ["同情他人不幸"] },
+  { name: "正确的世界观", seeds: ["种子法则", "空性法则", "为世界而做", "分享智慧", "学习智慧", "服务智慧"] },
+];
+function bigIndexOfSmall(s) {
+  for (let i = 0; i < TL_BIG_SEEDS.length; i++)
+    if (TL_BIG_SEEDS[i].seeds.indexOf(s) !== -1) return i;
+  return -1;
+}
 
 function slotKey(min) {
   return String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0");
@@ -540,7 +546,7 @@ function renderTimeline() {
       <div class="tl-time">${isHour ? key : ""}</div>
       <div class="tl-axis"><span class="tl-dot"></span></div>
       <div class="tl-body">
-        ${isSix ? `<span class="tl-lotus ${seed ? "on" : ""}" data-idx="${sixIdx}">🪷 ${seed ? tdEsc(seed) + (sNote ? " · " + tdEsc(sNote) : "") : "六时书"}</span>` : ""}
+        ${isSix ? `<span class="tl-lotus ${seed ? "on" : ""}" data-idx="${sixIdx}" title="${tdEsc(TL_BIG_SEEDS[sixIdx].name)}">🪷 ${seed ? tdEsc(TL_BIG_SEEDS[sixIdx].name) + " · " + tdEsc(seed) + (sNote ? " · " + tdEsc(sNote) : "") : "六时书 · " + tdEsc(TL_BIG_SEEDS[sixIdx].name)}</span>` : ""}
         ${item ? `<span class="tl-item"><span class="tl-ico">${ico.icon}</span><span class="tl-text">${tdEsc(item.text)}</span><button class="tl-x" data-key="${key}" type="button" title="清除">✕</button></span>` : '<span class="tl-empty"></span>'}
       </div>
     </div>`;
@@ -601,29 +607,45 @@ function openSlotEditor(key) {
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") box.querySelector(".tle-save").click(); });
 }
 
-// 点莲花：种下这一时的好种子
+// 点莲花：先选大种子，再在其中选小种子，最后写行动
 function openSixEditor(idx) {
   closeTlEditors();
   const row = document.querySelectorAll("#timeline .tl-row.is-six")[idx];
   if (!row) return;
   const six = loadSixData(curTodoDate);
+  const curSmall = six.seeds[idx] || "";
+  let curBig = bigIndexOfSmall(curSmall);
+  if (curBig === -1) curBig = idx;   // 旧数据 / 未选：默认用该时段对应的大种子
   const box = document.createElement("div");
   box.className = "tl-editor six";
+  const bigOpts = TL_BIG_SEEDS.map((b, i) =>
+    `<option value="${i}" ${i === curBig ? "selected" : ""}>${b.name}</option>`).join("");
+  const smallOpts = (sel, mark) =>
+    '<option value="">— 选小种子 —</option>' +
+    TL_BIG_SEEDS[sel].seeds.map((s) => `<option value="${s}" ${s === mark ? "selected" : ""}>${s}</option>`).join("");
   box.innerHTML =
     `<div class="tle-head">🪷 六时书 · ${TL_SIX[idx]}:00</div>` +
-    '<select class="tle-seed"><option value="">— 选一颗种子 —</option>' +
-    SIX_SEEDS.map((s) => `<option value="${s}" ${six.seeds[idx] === s ? "selected" : ""} title="${SIX_SEED_HINT[s] || ""}">${s}</option>`).join("") +
-    "</select>" +
+    `<div class="tle-sub">这一时对应的大种子：</div>` +
+    `<select class="tle-big">${bigOpts}</select>` +
+    `<div class="tle-sub">再选一颗小种子：</div>` +
+    `<select class="tle-seed">${smallOpts(curBig, curSmall)}</select>` +
     `<input class="tle-note" type="text" value="${tdEsc(six.notes[idx] || "")}" placeholder="具体一件好事 / 行动（可选）" />` +
     '<div class="tle-acts"><button type="button" class="tle-save">保存</button><button type="button" class="tle-cancel">取消</button></div>';
   row.parentNode.insertBefore(box, row.nextSibling);
+  const bigSel = box.querySelector(".tle-big");
+  const smallSel = box.querySelector(".tle-seed");
+  bigSel.addEventListener("change", () => {   // 切换大种子 → 小种子列表跟着变
+    smallSel.innerHTML = '<option value="">— 选小种子 —</option>' +
+      TL_BIG_SEEDS[+bigSel.value].seeds.map((s) => `<option value="${s}">${s}</option>`).join("");
+  });
   box.querySelector(".tle-save").addEventListener("click", () => {
-    const seed = box.querySelector(".tle-seed").value;
+    const seed = smallSel.value;
     const note = box.querySelector(".tle-note").value.trim();
     saveSixAt(idx, "seeds", seed);
     saveSixAt(idx, "notes", note);
     renderTimeline();
-    toast(seed ? "「" + seed + "」已种下 🪷" : "六时书已更新");
+    const bn = TL_BIG_SEEDS[+bigSel.value].name;
+    toast(seed ? `「${bn} · ${seed}」已种下 🪷` : "六时书已更新");
   });
   box.querySelector(".tle-cancel").addEventListener("click", () => box.remove());
 }
