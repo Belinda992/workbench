@@ -299,11 +299,9 @@
         <div class="view" id="view-xiaoman">
           <h2 class="view-title c-yellow">👑 小满成长</h2>
 
-          <div class="today-chips" id="xmTodayChip"></div>
-
           <!-- 成长记录 -->
           <div class="life-block">
-            <div class="life-head">📅 <span id="xmHeadTitle">成长记录</span></div>
+            <div class="life-head">🌱 <span id="xmHeadTitle">成长记录</span></div>
             <form id="xmForm" class="life-form">
               <div class="xm-grid">
                 <div class="lf-row"><label>📖 语文</label><textarea id="xmYuwen" placeholder="今天读了 / 说了什么…"></textarea></div>
@@ -346,9 +344,9 @@
                 <input id="msDesc" placeholder="简单记一句" />
               </div>
               <div class="lf-row">
-                <label>照片</label>
-                <input type="file" id="msPhoto" accept="image/*" />
-                <img id="msPreview" class="photo-prev" alt="预览" />
+                <label>照片（可多张）</label>
+                <input type="file" id="msPhoto" accept="image/*" multiple />
+                <div id="msPreview" class="photo-prevs"></div>
               </div>
               <button type="submit" class="btn">添加</button>
             </form>

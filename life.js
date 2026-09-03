@@ -526,7 +526,7 @@ $("#jrMonth").addEventListener("click", () => exportJournal("month"));
 
 // ---------- 5. 小满成长 ----------
 let xmPhotoData = [];
-let msPhotoData = null;
+let msPhotoData = [];
 function renderXmPreviews() {
   const box = $("#xmPreview");
   if (!box) return;
@@ -656,14 +656,27 @@ function renderXm() {
   );
 }
 
-// 里程碑照片
+// 里程碑照片（支持多张）
+function renderMsPreviews() {
+  const box = $("#msPreview");
+  if (!box) return;
+  box.innerHTML = msPhotoData.map((src, i) =>
+    `<span class="pp-wrap"><img class="pp-img" src="${src}" alt="预览"/><button type="button" class="pp-del" data-i="${i}" title="移除">✕</button></span>`
+  ).join("");
+  $$("#msPreview .pp-del").forEach((b) =>
+    b.addEventListener("click", () => {
+      msPhotoData.splice(+b.dataset.i, 1);
+      renderMsPreviews();
+    })
+  );
+}
 $("#msPhoto").addEventListener("change", async (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  msPhotoData = await fileToDataURL(f);
-  const prev = $("#msPreview");
-  prev.src = msPhotoData;
-  prev.style.display = "block";
+  const files = Array.from(e.target.files || []);
+  for (const f of files) {
+    if (f) msPhotoData.push(await fileToDataURL(f));
+  }
+  renderMsPreviews();
+  e.target.value = "";
 });
 
 // 小满今日状态
@@ -683,11 +696,11 @@ $("#msForm").addEventListener("submit", (e) => {
   const desc = $("#msDesc").value.trim();
   if (!title) return;
   const list = store.get(LS.ms, []);
-  list.push({ date: curXmDate, title, desc, photo: msPhotoData, ts: Date.now() });
+  list.push({ date: curXmDate, title, desc, photo: msPhotoData.slice(), ts: Date.now() });
   store.set(LS.ms, list);
   e.target.reset();
-  msPhotoData = null;
-  $("#msPreview").style.display = "none";
+  msPhotoData = [];
+  renderMsPreviews();
   renderMilestone();
   toast("里程碑已添加 🌟");
 });
@@ -699,7 +712,10 @@ function renderMilestone() {
       <div class="tl-date">${m.date}</div>
       <div class="tl-title">${escapeHtml(m.title)}</div>
       ${m.desc ? `<div class="tl-desc">${escapeHtml(m.desc)}</div>` : ""}
-      ${m.photo ? `<img class="entry-photo" src="${m.photo}" alt="里程碑照片"/>` : ""}
+      ${(() => {
+        const photos = m.photo ? (Array.isArray(m.photo) ? m.photo : [m.photo]) : [];
+        return photos.map((src) => `<img class="entry-photo" src="${src}" alt="里程碑照片"/>`).join("");
+      })()}
     </div>`).join("") || '<div class="muted">还没有里程碑</div>';
 }
 
@@ -741,7 +757,10 @@ function exportXmMarkdown() {
   });
   const ms = store.get(LS.ms, []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
   L.push(`\n## 🌟 成长里程碑（${ms.length} 条）`);
-  ms.forEach((m) => L.push(`- **${m.date}**：${m.title}${m.desc ? "（" + m.desc + "）" : ""}`));
+  ms.forEach((m) => {
+    const photos = m.photo ? (Array.isArray(m.photo) ? m.photo : [m.photo]) : [];
+    L.push(`- **${m.date}**：${m.title}${m.desc ? "（" + m.desc + "）" : ""}${photos.length ? ` · 📷${photos.length}张` : ""}`);
+  });
   downloadText(`小满成长_${todayStr()}.md`, L.join("\n"));
   toast("已导出小满数据 ⬇️");
 }
