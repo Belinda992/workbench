@@ -374,6 +374,10 @@ body {
 .pp-del { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; border: none; background: #e5484d; color: #fff; cursor: pointer; font-size: 12px; line-height: 22px; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .entry-text.to-xm { background: #fff7e6; border-radius: 8px; padding: 6px 8px; margin-top: 4px; }
 .st-topic { display: inline-block; background: var(--c-blue-soft); color: var(--c-blue); font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+.sync-code-box { background: #f6f9fc; border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+.scb-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.sync-code-box textarea { width: 100%; font-size: 11px; font-family: ui-monospace, Consolas, monospace; resize: vertical; }
+.scb-acts { margin-top: 8px; display: flex; gap: 8px; }
 .date-pick-bottom { margin-top: 18px; }
 
 .btn {

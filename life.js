@@ -785,8 +785,118 @@ function exportAllJson() {
   toast(`已备份 ${keys} 项数据 ⬇️`);
 }
 
+// ============ 图文版导出（按时间顺序 · 照片内嵌 · 可存PDF传飞书） ============
+// 把照片字段统一成数组（兼容旧的单张 dataURL）
+function photosOf(v) {
+  if (!v) return [];
+  return (Array.isArray(v) ? v : [v]).filter(Boolean);
+}
+// 若干张照片 → 内嵌 HTML
+function photosHtml(v) {
+  const ps = photosOf(v);
+  if (!ps.length) return "";
+  return `<div class="ph">` + ps.map((p) => `<img src="${p}" alt="照片"/>`).join("") + `</div>`;
+}
+// 生成自包含 HTML 页面外壳（带打印样式 + 打印按钮 + 飞书上传指引）
+function htmlShell(title, body, note) {
+  return `<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;max-width:820px;margin:0 auto;padding:28px 22px 80px;color:#1f2430;line-height:1.75;background:#fff}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:#8a93a6;font-size:13px;margin-bottom:22px}
+h2{font-size:17px;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid #eef1f6}
+.day{border:1px solid #e8ebf2;border-radius:12px;padding:14px 16px;margin-bottom:14px;background:#fcfdff;break-inside:avoid}
+.day.d0{background:#fff}
+.date{font-size:13px;color:#8a93a6;letter-spacing:.3px;margin-bottom:6px}
+.lab{display:inline-block;font-size:12px;font-weight:700;color:#4a5568;background:#f1f4f9;border-radius:6px;padding:1px 8px;margin-right:6px;vertical-align:1px}
+.sec{margin:5px 0;white-space:pre-wrap;word-break:break-word;font-size:14px}
+.ph{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ph img{max-width:220px;max-height:260px;border-radius:8px;border:1px solid #e8ebf2;object-fit:cover}
+.empty{color:#a8b0c0;font-size:13px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e8ebf2;padding:10px 16px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,.06);z-index:9}
+.bar .tip{font-size:12px;color:#8a93a6}
+.btn{border:none;background:#2e9e5e;color:#fff;border-radius:8px;padding:8px 18px;font-size:14px;cursor:pointer;font-weight:600}
+.btn.gh{background:#f1f4f9;color:#4a5568}
+@media print{.bar{display:none}body{padding:0;max-width:none}.day{background:#fff}}
+</style></head><body>
+<h1>${title}</h1>
+<div class="sub">${note || ""}</div>
+${body || '<div class="empty">还没有记录</div>'}
+<div class="bar">
+  <button class="btn" onclick="window.print()">🖨 打印 / 存为 PDF</button>
+  <button class="btn gh" onclick="window.scrollTo(0,0)">↑ 回到顶部</button>
+  <span class="tip">存成 PDF 后，直接拖进飞书云文档 / 飞书云盘，照片会完整保留</span>
+</div>
+</body></html>`;
+}
+function esc(s) { return escapeHtml(String(s == null ? "" : s)); }
+function nl(s) { return esc(s).replace(/\n/g, "<br>"); }
+
+// 元气日常 → 图文版 HTML（按日期从早到晚）
+function exportLifeHtml() {
+  const ex = store.get(LS.ex, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const wt = store.get(LS.wt, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const st = store.get(LS.st, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const jr = store.get(LS.jr, {});
+  const jkeys = Object.keys(jr).sort();
+  const JL = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["other", "其他"], ["words", "对自己说的话"]];
+
+  let b = `<h2>🧘 运动打卡（${ex.length}）</h2>`;
+  b += ex.length ? ex.map((e) => `<div class="day"><div class="date">${e.date} · ${esc(e.type)}</div>
+    <div class="sec">${nl(e.feeling || "（无感受）")}</div>${photosHtml(e.photo)}</div>`).join("")
+    : '<div class="empty">暂无</div>';
+
+  b += `<h2>⚖️ 体重记录（${wt.length}）</h2>`;
+  b += wt.length ? wt.map((r) => `<div class="day"><div class="date">${r.date}</div>
+    <div class="sec"><b>${r.kg} kg</b>${r.note ? " · " + esc(r.note) : ""}</div></div>`).join("")
+    : '<div class="empty">暂无</div>';
+
+  b += `<h2>🔵 学习记录（${st.length}）</h2>`;
+  b += st.length ? st.map((s) => {
+    const nm = s.name || s.subject || s.book || "（未命名）";
+    const bits = [s.topic ? `【${esc(s.topic)}】` : "", esc(nm), s.range ? `范围：${esc(s.range)}` : "", s.period ? `时段：${esc(s.period)}` : "", s.minutes ? `${s.minutes} 分钟` : ""].filter(Boolean).join(" · ");
+    return `<div class="day"><div class="date">${s.date}</div>
+      <div class="sec">${bits}</div>
+      ${s.output || s.feeling ? `<div class="sec">${nl(s.output || s.feeling)}</div>` : ""}</div>`;
+  }).join("") : '<div class="empty">暂无</div>';
+
+  b += `<h2>📔 日记（${jkeys.length} 天）</h2>`;
+  b += jkeys.length ? jkeys.map((k) => `<div class="day"><div class="date">${k}</div>
+    ${JL.filter(([f]) => jr[k][f]).map(([f, lab]) => `<div class="sec"><span class="lab">${lab}</span>${nl(jr[k][f])}</div>`).join("")}
+    ${photosHtml(jr[k].photo)}</div>`).join("") : '<div class="empty">暂无</div>';
+
+  downloadFile(`元气日常_图文版_${todayStr()}.html`, htmlShell("🍊 元气日常 · 图文回顾", b, `按时间从早到晚排列 · 导出于 ${todayStr()}`));
+  toast("图文版已导出，打开后打印成 PDF 即可传飞书 ⬇️");
+}
+
+// 小满成长 → 图文版 HTML（按日期从早到晚）
+function exportXmHtml() {
+  const xm = store.get(LS.xm, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const ms = store.get(LS.ms, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+  let b = `<h2>🌱 成长记录（${xm.length} 天）</h2>`;
+  b += xm.length ? xm.map((x) => {
+    const rows = XM_FIELDS.filter(([k]) => x[k]).map(([k, lab]) => `<div class="sec"><span class="lab">${lab}</span>${nl(x[k])}</div>`).join("");
+    const to = x.words ? `<div class="sec"><span class="lab">💌 To小满</span>${nl(x.words)}</div>` : "";
+    return `<div class="day"><div class="date">${x.date}</div>${rows}${to}${photosHtml(x.photo)}</div>`;
+  }).join("") : '<div class="empty">暂无</div>';
+
+  b += `<h2>🌟 成长里程碑（${ms.length}）</h2>`;
+  b += ms.length ? ms.map((m) => `<div class="day"><div class="date">${m.date}</div>
+    <div class="sec"><b>${esc(m.title)}</b>${m.desc ? "<br>" + nl(m.desc) : ""}</div>${photosHtml(m.photo)}</div>`).join("")
+    : '<div class="empty">暂无</div>';
+
+  downloadFile(`小满成长_图文版_${todayStr()}.html`, htmlShell("👑 小满成长 · 图文回顾", b, `按时间从早到晚排列 · 导出于 ${todayStr()}`));
+  toast("图文版已导出，打开后打印成 PDF 即可传飞书 ⬇️");
+}
+
 $("#btnExportLife").addEventListener("click", exportLifeMarkdown);
 $("#btnExportXm").addEventListener("click", exportXmMarkdown);
+$("#btnExportLifeHtml")?.addEventListener("click", exportLifeHtml);
+$("#btnExportXmHtml")?.addEventListener("click", exportXmHtml);
 $("#btnBackupAll").addEventListener("click", exportAllJson);
 
 // 初始化

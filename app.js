@@ -921,8 +921,46 @@ function hideOverlay() { const o = $("#syncOverlay"); if (o) o.style.display = "
 function openSyncLogin() {
   const m = $("#syncModal"); if (m) m.style.display = "flex";
   const p = $("#syncPwd"); if (p) { p.value = ""; p.focus(); }
+  const box = $("#syncCodeBox"); if (box) box.style.display = "none";
+}
+// 同步码：把 token + gistId 打包成一段文本，方便在设备之间传递
+function buildSyncCode() {
+  return JSON.stringify({ wb: 1, token: SYNC.token || "", gist: SYNC.gistId || "" });
+}
+function showSyncCode() {
+  const box = $("#syncCodeBox"), ta = $("#syncCodeText");
+  if (!box || !ta) return;
+  if (!SYNC.token) { toast("请先连接云端，才能生成同步码"); return; }
+  ta.value = buildSyncCode();
+  box.style.display = "block";
+}
+async function copySyncCode() {
+  const txt = buildSyncCode();
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast("同步码已复制，发到另一台设备粘贴即可 ✅");
+  } catch (_) {
+    const ta = $("#syncCodeText");
+    if (ta) { ta.select(); document.execCommand("copy"); toast("同步码已复制 ✅"); }
+  }
+}
+// 粘贴同步码时自动拆开填入 token / gistId
+function tryParseSyncCode(raw) {
+  const s = (raw || "").trim();
+  if (!s.startsWith("{")) return false;
+  try {
+    const o = JSON.parse(s);
+    if (!o || o.wb !== 1 || !o.token) return false;
+    const p = $("#syncPwd"), g = $("#syncGistId");
+    if (p) p.value = o.token;
+    if (g) g.value = o.gist || "";
+    return true;
+  } catch (_) { return false; }
 }
 async function submitSyncLogin() {
+  const raw = ($("#syncPwd")?.value || "").trim();
+  if (!raw) return;
+  if (tryParseSyncCode(raw)) toast("已识别同步码 ✅");
   const token = ($("#syncPwd")?.value || "").trim();
   if (!token) return;
   const gid = ($("#syncGistId")?.value || "").trim();
@@ -977,6 +1015,16 @@ $("#btnSyncToggle")?.addEventListener("click", () => {
 });
 $("#syncCancel")?.addEventListener("click", () => { $("#syncModal").style.display = "none"; });
 $("#syncSubmit")?.addEventListener("click", submitSyncLogin);
+$("#btnShowSyncCode")?.addEventListener("click", showSyncCode);
+$("#btnCopySyncCode")?.addEventListener("click", copySyncCode);
+$("#syncPwd")?.addEventListener("paste", (e) => {
+  const t = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+  if (t.trim().startsWith("{")) {
+    e.preventDefault();
+    if (tryParseSyncCode(t)) toast("已识别同步码，点「连接」即可 ✅");
+    else $("#syncPwd").value = t.trim();
+  }
+});
 $("#btnImport")?.addEventListener("click", openImport);
 $("#importCancel")?.addEventListener("click", () => { $("#importModal").style.display = "none"; });
 $("#importSubmit")?.addEventListener("click", doImport);

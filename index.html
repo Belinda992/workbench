@@ -296,7 +296,8 @@
           </div>
 
           <div class="export-bar">
-            <button class="btn ghost" id="btnExportLife">📤 导出本主题 (Markdown)</button>
+            <button class="btn ghost" id="btnExportLife">📤 导出本主题 (文字版)</button>
+            <button class="btn ghost" id="btnExportLifeHtml">📄 图文版（含照片，按时间顺序）</button>
           </div>
         </div>
 
@@ -358,7 +359,8 @@
             <div class="timeline" id="msTimeline"></div>
           </div>
           <div class="export-bar">
-            <button class="btn ghost" id="btnExportXm">📤 导出小满数据 (Markdown)</button>
+            <button class="btn ghost" id="btnExportXm">📤 导出小满数据 (文字版)</button>
+            <button class="btn ghost" id="btnExportXmHtml">📄 图文版（含照片，按时间顺序）</button>
           </div>
 
           <!-- 记录日期移到最底端 -->
@@ -785,13 +787,21 @@
   <div class="modal" id="syncModal" style="display:none;">
     <div class="modal-card">
       <div class="modal-title">连接云端同步</div>
-      <p class="muted">用 GitHub Gist 免费保存数据，零服务器。任意设备打开这个链接、输入同一个 GitHub 令牌即可编辑同一份数据。<br>获取令牌：GitHub → Settings → Developer settings → Personal Access Tokens → 勾选 <b>gist</b> 权限生成。</p>
-      <label>GitHub 访问令牌（Token）</label>
-      <input id="syncPwd" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" />
+      <p class="muted">用 GitHub Gist 免费保存数据，零服务器。<b>手机和电脑用同一段「同步码」就能看到同一份数据。</b><br>获取令牌：GitHub → Settings → Developer settings → Personal Access Tokens → 勾选 <b>gist</b> 权限生成。</p>
+      <div class="sync-code-box" id="syncCodeBox" style="display:none">
+        <div class="scb-title">📋 你的同步码（复制后发到另一台设备粘贴即可）</div>
+        <textarea id="syncCodeText" readonly rows="2"></textarea>
+        <div class="scb-acts">
+          <button class="btn" id="btnCopySyncCode" type="button">复制同步码</button>
+        </div>
+      </div>
+      <label>GitHub 访问令牌（Token）— 也可直接粘贴同步码</label>
+      <input id="syncPwd" type="password" placeholder="ghp_xxxxxxxxxxxx 或粘贴同步码" autocomplete="off" />
       <label>Gist ID（可选，首次留空自动创建）</label>
       <input id="syncGistId" placeholder="留空将自动新建一个私密 Gist" autocomplete="off" />
       <div class="modal-actions">
         <button class="btn ghost" id="syncCancel">取消</button>
+        <button class="btn ghost" id="btnShowSyncCode" type="button">显示同步码</button>
         <button class="btn" id="syncSubmit">连接</button>
       </div>
     </div>
