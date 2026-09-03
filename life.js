@@ -374,31 +374,33 @@ $("#pomoReset").addEventListener("click", () => {
 });
 $("#stForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  const subject = $("#stSubject").value.trim();
+  const topic = $("#stTopic").value;
+  const name = $("#stName").value.trim();
   const period = $("#stPeriod").value.trim();
   const range = $("#stRange").value.trim();
-  const minutes = parseInt($("#stMin").value) || 0;
   const output = $("#stOutput").value.trim();
-  if (!subject && !period && !range && !minutes && !output) return;
+  if (!name && !period && !range && !output) return;
   const list = store.get(LS.st, []);
-  list.push({ date: curLifeDate, subject, period, range, minutes, output, ts: Date.now() });
+  list.push({ date: curLifeDate, topic, name, period, range, output, ts: Date.now() });
   store.set(LS.st, list);
   e.target.reset();
   renderSt(); renderChips(); syncSubjectHint();
   toast("学习记录已保存 📚");
 });
-// 学习记录：自动提示"最近学习主体"，方便连续学习时快速填入
+// 学习记录：自动提示"最近在学的名称"，方便连续学习时快速填入
 function syncSubjectHint() {
   const hint = document.getElementById("stSubjectHint");
   if (!hint) return;
-  if ($("#stSubject").value.trim()) { hint.style.display = "none"; return; }
-  const recent = store.get(LS.st, []).filter((s) => s.subject).sort(byDateDesc);
+  if ($("#stName").value.trim()) { hint.style.display = "none"; return; }
+  const recent = store.get(LS.st, []).filter((s) => s.name || s.subject).sort(byDateDesc);
   if (!recent.length) { hint.style.display = "none"; return; }
-  const subj = recent[0].subject;
+  const nm = recent[0].name || recent[0].subject;
+  const tp = recent[0].topic || "";
   hint.style.display = "block";
-  hint.innerHTML = `📌 最近学习主体：<b>${escapeHtml(subj)}</b> <a class="link-btn" data-fill="1">填入</a>`;
+  hint.innerHTML = `📌 最近在学：<b>${escapeHtml(nm)}</b>${tp ? `<span class="muted">（${escapeHtml(tp)}）</span>` : ""} <a class="link-btn" data-fill="1">填入</a>`;
   hint.querySelector("[data-fill]").addEventListener("click", () => {
-    $("#stSubject").value = subj;
+    $("#stName").value = nm;
+    if (tp) $("#stTopic").value = tp;
     hint.style.display = "none";
   });
 }
@@ -423,11 +425,12 @@ function renderSt() {
     ? list.map((s) => {
         const meta = [s.period, (s.minutes ? s.minutes + " 分钟" : "")].filter(Boolean).join(" · ");
         const lines = [];
-        if (s.subject) lines.push(`<b>${escapeHtml(s.subject)}</b>`);
+        const nm = s.name || s.subject || s.book || "";
+        const head = [s.topic ? `<span class="st-topic">${escapeHtml(s.topic)}</span>` : "", nm ? `<b>${escapeHtml(nm)}</b>` : ""].filter(Boolean).join(" ");
+        if (head) lines.push(head);
         if (s.range) lines.push(`范围：${escapeHtml(s.range)}`);
         if (s.output) lines.push(escapeHtml(s.output).replace(/\n/g, "<br>"));
-        // 兼容旧数据（book / feeling）
-        if (!s.subject && s.book) lines.push(`<b>${escapeHtml(s.book)}</b>`);
+        // 兼容旧数据（feeling）
         if (!s.output && s.feeling) lines.push(escapeHtml(s.feeling).replace(/\n/g, "<br>"));
         return `<div class="entry${s.date === curLifeDate ? " today" : ""}">
           <div class="entry-body">
@@ -730,8 +733,12 @@ function exportLifeMarkdown() {
   L.push(`\n## ⚖️ 体重记录（${wt.length} 条）`);
   wt.forEach((r) => L.push(`- ${r.date}：${r.kg} kg${r.note ? "（" + r.note + "）" : ""}`));
   const st = store.get(LS.st, []).slice().reverse();
-  L.push(`\n## 🍅 学习 · 阅读（${st.length} 条）`);
-  st.forEach((s) => L.push(`- **${s.date} · ${s.minutes} 分钟**：${s.book}${s.feeling ? "\n  - " + s.feeling : ""}`));
+  L.push(`\n## 🔵 学习记录（${st.length} 条）`);
+  st.forEach((s) => {
+    const nm = s.name || s.subject || s.book || "（未命名）";
+    const bits = [s.topic ? `【${s.topic}】` : "", nm, s.range ? `范围：${s.range}` : "", s.period ? `时段：${s.period}` : "", s.minutes ? `${s.minutes} 分钟` : ""].filter(Boolean).join(" · ");
+    L.push(`- **${s.date}**：${bits}${s.output ? "\n  - 输出：" + s.output : (s.feeling ? "\n  - " + s.feeling : "")}`);
+  });
   const jr = store.get(LS.jr, {});
   const jkeys = Object.keys(jr).sort();
   const JL = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["other", "其他"], ["words", "对自己说的话"]];

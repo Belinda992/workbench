@@ -229,20 +229,25 @@
               <div class="focus-banner" id="stSubjectHint" style="display:none"></div>
               <form id="stForm" class="life-form">
                 <div class="lf-row">
-                  <label>主体（最近在学什么）</label>
-                  <input id="stSubject" placeholder="如 英语 / 投资 / 写作 / 视频剪辑" />
+                  <label>主题</label>
+                  <select id="stTopic">
+                    <option value="认知">🧠 认知</option>
+                    <option value="事业">💼 事业</option>
+                    <option value="投资">📈 投资</option>
+                    <option value="其他">✨ 其他</option>
+                  </select>
+                </div>
+                <div class="lf-row">
+                  <label>名称</label>
+                  <input id="stName" placeholder="如 《认知觉醒》/ 剪辑课 / 财报分析" />
+                </div>
+                <div class="lf-row">
+                  <label>学习范围（从哪里到哪里）</label>
+                  <input id="stRange" placeholder="如 第3章 → 第5章 / P40–P80" />
                 </div>
                 <div class="lf-row">
                   <label>时间段</label>
                   <input id="stPeriod" placeholder="如 上午 09:00–10:30" />
-                </div>
-                <div class="lf-row">
-                  <label>今天学的范围（从哪里到哪里）</label>
-                  <input id="stRange" placeholder="如 第3章 → 第5章 / P40–P80" />
-                </div>
-                <div class="lf-row">
-                  <label>时长(分钟)</label>
-                  <input id="stMin" type="number" placeholder="如 60" />
                 </div>
                 <div class="lf-row">
                   <label>输出内容</label>
