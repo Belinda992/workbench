@@ -333,6 +333,30 @@ body {
 }
 .life-head { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
 
+/* 元气日常三大主题分区 */
+.life-theme { margin-bottom: 6px; }
+.theme-head {
+  display: inline-block; font-size: 16px; font-weight: 800;
+  padding: 6px 16px; border-radius: 10px; margin: 16px 0 12px;
+}
+.th-green  { background: var(--c-green-soft);  color: var(--c-green); }
+.th-blue   { background: var(--c-blue-soft);   color: var(--c-blue); }
+.th-purple { background: var(--c-purple-soft); color: var(--c-purple); }
+
+/* 日记三行填空式（横格纸样式） */
+.fill3 {
+  background-color: #fff;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 26px, #e3e7ef 26px, #e3e7ef 27px);
+  background-attachment: local;
+  line-height: 27px;
+  padding-top: 3px;
+  min-height: 84px;
+}
+.fill3:focus { border-color: var(--brand); }
+
+/* 记录日期移到主题底部 */
+.date-pick-bottom { margin-top: 10px; margin-bottom: 0; }
+
 .life-form { display: flex; flex-direction: column; gap: 14px; max-width: 560px; }
 .life-form.inline { flex-direction: row; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
 .lf-row { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 180px; }
@@ -724,3 +748,9 @@ body {
 .dream-actions { display: flex; gap: 6px; }
 .dream-btn { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--text); font-family: inherit; }
 .dream-btn:hover { border-color: var(--c-purple); color: var(--c-purple); }
+
+/* ===== 焦点日期横幅（小满/元气按天聚焦） ===== */
+.focus-banner { display: none; margin: 6px 0 10px; padding: 8px 12px; border-radius: 10px; background: #fff7e6; border: 1px solid #ffe2a8; color: #7a5a16; font-size: 13px; line-height: 1.5; }
+.focus-banner b { color: #b8860b; }
+.focus-banner .link-btn { color: var(--brand); cursor: pointer; text-decoration: underline; margin-left: 6px; font-size: 13px; }
+.focus-banner .fb-empty { color: #c0392b; font-weight: 600; }

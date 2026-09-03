@@ -31,6 +31,8 @@ const todayStr = () => {
 /* ========== 补录：可切换"正在记录的日期" ========== */
 let curLifeDate = todayStr();   // 元气日常（运动 / 体重 / 学习 / 日记）
 let curXmDate = todayStr();     // 小满成长（每日记录 / 里程碑）
+let lifeShowAll = false;        // 元气日常：是否临时展开全部历史
+let xmShowAll = false;          // 小满成长：是否临时展开全部历史
 
 // 日期加减天数，返回 YYYY-MM-DD
 function shiftDate(d, delta) {
@@ -136,15 +138,18 @@ function syncXmDateUI() {
 // 切换元气日常的记录日期
 function setLifeDate(d) {
   curLifeDate = d;
+  lifeShowAll = false;          // 切日期回到「只看当天」聚焦模式
   syncLifeDateUI();
   renderChips();
   loadJournal();
   renderEx(); renderWt(); renderSt();
+  syncSubjectHint();
 }
 
 // 切换小满的记录日期
 function setXmDate(d) {
   curXmDate = d;
+  xmShowAll = false;            // 切日期回到「只看当天」聚焦模式
   syncXmDateUI();
   loadXmForm();
   renderXmChip();
@@ -228,8 +233,24 @@ $("#exForm").addEventListener("submit", (e) => {
   toast("运动打卡已保存 🧘");
 });
 function renderEx() {
-  const list = store.get(LS.ex, []).slice().sort(byDateDesc).slice(0, 8);
-  $("#exList").innerHTML = list.map((e) => `
+  const all = store.get(LS.ex, []).slice().sort(byDateDesc);
+  const isToday = curLifeDate === todayStr();
+  const showAll = lifeShowAll || isToday;
+  const list = showAll ? all.slice(0, 8) : all.filter((e) => e.date === curLifeDate);
+  const banner = document.getElementById("exFocusBanner");
+  if (banner) {
+    if (!isToday && !lifeShowAll) {
+      banner.style.display = "block";
+      banner.innerHTML = `🔍 正在查看 <b>${dateLabel(curLifeDate)}（${curLifeDate}）</b> 的运动记录` +
+        (list.length ? ` · 共 ${list.length} 条` : ` · <span class="fb-empty">这天还没有运动记录，可在上方补录</span>`) +
+        ` <a class="link-btn" data-all="1">查看全部历史</a>`;
+      banner.querySelector("[data-all]").addEventListener("click", () => { lifeShowAll = true; renderEx(); });
+    } else {
+      banner.style.display = "none";
+    }
+  }
+  $("#exList").innerHTML = list.length
+    ? list.map((e) => `
     <div class="entry${e.date === curLifeDate ? " today" : ""}">
       ${e.photo ? `<img class="entry-photo" src="${e.photo}" alt="训练照"/>` : ""}
       <div class="entry-body">
@@ -237,7 +258,8 @@ function renderEx() {
         <div class="entry-text">${e.feeling || "（无感受）"}</div>
       </div>
       <button class="entry-del" data-k="${e.ts}">✕</button>
-    </div>`).join("") || '<div class="muted">还没有打卡记录</div>';
+    </div>`).join("")
+    : '<div class="muted">还没有打卡记录</div>';
   $$("#exList .entry-del").forEach((b) =>
     b.addEventListener("click", () => {
       store.set(LS.ex, store.get(LS.ex, []).filter((x) => x.ts !== +b.dataset.k));
@@ -264,15 +286,31 @@ function renderWt() {
   $("#wtChart").innerHTML = recent.length
     ? miniLine(recent.map((r) => r.kg))
     : '<div class="muted">暂无数据</div>';
-  const list = asc.slice().reverse().slice(0, 8);
-  $("#wtList").innerHTML = list.map((r) => `
+  const isToday = curLifeDate === todayStr();
+  const showAll = lifeShowAll || isToday;
+  const list = showAll ? asc.slice().reverse().slice(0, 8) : asc.filter((r) => r.date === curLifeDate);
+  const banner = document.getElementById("wtFocusBanner");
+  if (banner) {
+    if (!isToday && !lifeShowAll) {
+      banner.style.display = "block";
+      banner.innerHTML = `🔍 正在查看 <b>${dateLabel(curLifeDate)}（${curLifeDate}）</b> 的体重记录` +
+        (list.length ? ` · 共 ${list.length} 条` : ` · <span class="fb-empty">这天还没有体重记录</span>`) +
+        ` <a class="link-btn" data-all="1">查看全部历史</a>`;
+      banner.querySelector("[data-all]").addEventListener("click", () => { lifeShowAll = true; renderWt(); });
+    } else {
+      banner.style.display = "none";
+    }
+  }
+  $("#wtList").innerHTML = list.length
+    ? list.map((r) => `
     <div class="entry${r.date === curLifeDate ? " today" : ""}">
       <div class="entry-body">
         <div class="entry-meta">${r.date}</div>
         <div class="entry-text">${r.kg} kg ${r.note ? "· " + r.note : ""}</div>
       </div>
       <button class="entry-del" data-k="${r.ts}">✕</button>
-    </div>`).join("") || '<div class="muted">还没有记录</div>';
+    </div>`).join("")
+    : '<div class="muted">还没有记录</div>';
   $$("#wtList .entry-del").forEach((b) =>
     b.addEventListener("click", () => {
       store.set(LS.wt, store.get(LS.wt, []).filter((x) => x.ts !== +b.dataset.k));
@@ -337,26 +375,70 @@ $("#pomoReset").addEventListener("click", () => {
 });
 $("#stForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  const book = $("#stBook").value.trim();
+  const subject = $("#stSubject").value.trim();
+  const period = $("#stPeriod").value.trim();
+  const range = $("#stRange").value.trim();
   const minutes = parseInt($("#stMin").value) || 0;
-  if (!book && !minutes) return;
+  const output = $("#stOutput").value.trim();
+  if (!subject && !period && !range && !minutes && !output) return;
   const list = store.get(LS.st, []);
-  list.push({ date: curLifeDate, book: book || "（未命名）", minutes, feeling: $("#stFeeling").value.trim(), ts: Date.now() });
+  list.push({ date: curLifeDate, subject, period, range, minutes, output, ts: Date.now() });
   store.set(LS.st, list);
   e.target.reset();
-  renderSt(); renderChips();
-  toast("阅读记录已保存 📚");
+  renderSt(); renderChips(); syncSubjectHint();
+  toast("学习记录已保存 📚");
 });
+// 学习记录：自动提示"最近学习主体"，方便连续学习时快速填入
+function syncSubjectHint() {
+  const hint = document.getElementById("stSubjectHint");
+  if (!hint) return;
+  if ($("#stSubject").value.trim()) { hint.style.display = "none"; return; }
+  const recent = store.get(LS.st, []).filter((s) => s.subject).sort(byDateDesc);
+  if (!recent.length) { hint.style.display = "none"; return; }
+  const subj = recent[0].subject;
+  hint.style.display = "block";
+  hint.innerHTML = `📌 最近学习主体：<b>${escapeHtml(subj)}</b> <a class="link-btn" data-fill="1">填入</a>`;
+  hint.querySelector("[data-fill]").addEventListener("click", () => {
+    $("#stSubject").value = subj;
+    hint.style.display = "none";
+  });
+}
 function renderSt() {
-  const list = store.get(LS.st, []).slice().sort(byDateDesc).slice(0, 8);
-  $("#stList").innerHTML = list.map((s) => `
-    <div class="entry${s.date === curLifeDate ? " today" : ""}">
-      <div class="entry-body">
-        <div class="entry-meta">${s.date} · ${s.minutes} 分钟</div>
-        <div class="entry-text"><b>${s.book}</b>${s.feeling ? "<br>" + s.feeling : ""}</div>
-      </div>
-      <button class="entry-del" data-k="${s.ts}">✕</button>
-    </div>`).join("") || '<div class="muted">还没有阅读记录</div>';
+  const all = store.get(LS.st, []).slice().sort(byDateDesc);
+  const isToday = curLifeDate === todayStr();
+  const showAll = lifeShowAll || isToday;
+  const list = showAll ? all.slice(0, 8) : all.filter((s) => s.date === curLifeDate);
+  const banner = document.getElementById("stFocusBanner");
+  if (banner) {
+    if (!isToday && !lifeShowAll) {
+      banner.style.display = "block";
+      banner.innerHTML = `🔍 正在查看 <b>${dateLabel(curLifeDate)}（${curLifeDate}）</b> 的学习记录` +
+        (list.length ? ` · 共 ${list.length} 条` : ` · <span class="fb-empty">这天还没有学习记录，可在上方补录</span>`) +
+        ` <a class="link-btn" data-all="1">查看全部历史</a>`;
+      banner.querySelector("[data-all]").addEventListener("click", () => { lifeShowAll = true; renderSt(); });
+    } else {
+      banner.style.display = "none";
+    }
+  }
+  $("#stList").innerHTML = list.length
+    ? list.map((s) => {
+        const meta = [s.period, (s.minutes ? s.minutes + " 分钟" : "")].filter(Boolean).join(" · ");
+        const lines = [];
+        if (s.subject) lines.push(`<b>${escapeHtml(s.subject)}</b>`);
+        if (s.range) lines.push(`范围：${escapeHtml(s.range)}`);
+        if (s.output) lines.push(escapeHtml(s.output).replace(/\n/g, "<br>"));
+        // 兼容旧数据（book / feeling）
+        if (!s.subject && s.book) lines.push(`<b>${escapeHtml(s.book)}</b>`);
+        if (!s.output && s.feeling) lines.push(escapeHtml(s.feeling).replace(/\n/g, "<br>"));
+        return `<div class="entry${s.date === curLifeDate ? " today" : ""}">
+          <div class="entry-body">
+            <div class="entry-meta">${s.date}${meta ? " · " + meta : ""}</div>
+            <div class="entry-text">${lines.join("<br>") || "（无内容）"}</div>
+          </div>
+          <button class="entry-del" data-k="${s.ts}">✕</button>
+        </div>`;
+      }).join("")
+    : '<div class="muted">还没有学习记录</div>';
   $$("#stList .entry-del").forEach((b) =>
     b.addEventListener("click", () => {
       store.set(LS.st, store.get(LS.st, []).filter((x) => x.ts !== +b.dataset.k));
@@ -366,6 +448,15 @@ function renderSt() {
 }
 
 // ---------- 4. 当日日记 ----------
+let jrPhotoData = null;
+$("#jrPhoto").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  jrPhotoData = await fileToDataURL(f);
+  const prev = $("#jrPreview");
+  prev.src = jrPhotoData;
+  prev.style.display = "block";
+});
 function loadJournal() {
   const all = store.get(LS.jr, {});
   const t = curLifeDate;
@@ -375,16 +466,22 @@ function loadJournal() {
   $("#jrAch").value = j.ach || "";
   $("#jrRef").value = j.ref || "";
   $("#jrWords").value = j.words || "";
+  jrPhotoData = j.photo || null;
+  const prev = $("#jrPreview");
+  if (jrPhotoData) { prev.src = jrPhotoData; prev.style.display = "block"; }
+  else { prev.style.display = "none"; prev.removeAttribute("src"); }
 }
 $("#jrSave").addEventListener("click", () => {
   const all = store.get(LS.jr, {});
-  all[curLifeDate] = {
+  const rec = {
     special: $("#jrSpecial").value.trim(),
     grat: $("#jrGrat").value.trim(),
     ach: $("#jrAch").value.trim(),
     ref: $("#jrRef").value.trim(),
     words: $("#jrWords").value.trim(),
   };
+  if (jrPhotoData) rec.photo = jrPhotoData;
+  all[curLifeDate] = rec;
   store.set(LS.jr, all);
   renderChips();
   const s = $("#jrSaved");
@@ -407,15 +504,16 @@ function exportJournal(range) {
   }
   const keys = Object.keys(all).filter((k) => k >= startStr).sort();
   if (!keys.length) { toast("该区间还没有日记哦"); return; }
-  const LABELS = [["special", "今日微光"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["words", "对自己说的话"]];
+  const LABELS = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["words", "对自己说的话"]];
   let html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>日记回顾</title>
-<style>body{font-family:-apple-system,"PingFang SC",sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1f2430;line-height:1.7}h1{font-size:22px}hr{border:none;border-top:1px solid #e8ebf2;margin:18px 0}.date{color:#8a93a6;font-size:13px;margin-bottom:6px}.lab{color:#2e9e5e;font-weight:600;margin-right:6px}.sec{margin:4px 0}</style></head><body>
+<style>body{font-family:-apple-system,"PingFang SC",sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1f2430;line-height:1.7}h1{font-size:22px}hr{border:none;border-top:1px solid #e8ebf2;margin:18px 0}.date{color:#8a93a6;font-size:13px;margin-bottom:6px}.lab{color:#2e9e5e;font-weight:600;margin-right:6px}.sec{margin:4px 0}.photo{max-width:240px;border-radius:10px;margin:8px 0;display:block}</style></head><body>
 <h1>${range === "week" ? "本周" : "本月"}日记回顾</h1>`;
   keys.forEach((k) => {
     html += `<div class="date">${k}</div>`;
     LABELS.forEach(([f, lab]) => {
       if (all[k][f]) html += `<div class="sec"><span class="lab">${lab}：</span>${escapeHtml(all[k][f]).replace(/\n/g, "<br>")}</div>`;
     });
+    if (all[k].photo) html += `<img class="photo" src="${all[k].photo}" alt="日记图片"/>`;
     html += `<hr>`;
   });
   html += `</body></html>`;
@@ -490,8 +588,24 @@ function loadXmForm() {
 }
 
 function renderXm() {
-  const list = store.get(LS.xm, []).slice().sort(byDateDesc);
-  $("#xmList").innerHTML = list.map((x) => {
+  const all = store.get(LS.xm, []).slice().sort(byDateDesc);
+  const isToday = curXmDate === todayStr();
+  const showAll = xmShowAll || isToday;
+  const list = showAll ? all : all.filter((x) => x.date === curXmDate);
+  const banner = document.getElementById("xmFocusBanner");
+  if (banner) {
+    if (!isToday && !xmShowAll) {
+      banner.style.display = "block";
+      banner.innerHTML = `🔍 正在查看 <b>${dateLabel(curXmDate)}（${curXmDate}）</b> 的小满记录` +
+        (list.length ? ` · 共 ${list.length} 条` : ` · <span class="fb-empty">这天还没有记录，可在上方表单补录</span>`) +
+        ` <a class="link-btn" data-all="1">查看全部历史</a>`;
+      banner.querySelector("[data-all]").addEventListener("click", () => { xmShowAll = true; renderXm(); });
+    } else {
+      banner.style.display = "none";
+    }
+  }
+  $("#xmList").innerHTML = list.length
+    ? list.map((x) => {
     let body = "";
     XM_FIELDS.forEach(([k, lab]) => {
       if (x[k]) body += `<div class="entry-text"><b>${lab}：</b>${escapeHtml(x[k]).replace(/\n/g, "<br>")}</div>`;
@@ -506,7 +620,8 @@ function renderXm() {
       </div>
       <button class="entry-del" data-k="${x.ts}">✕</button>
     </div>`;
-  }).join("") || '<div class="muted">还没有记录</div>';
+  }).join("")
+    : '<div class="muted">还没有记录</div>';
   $$("#xmList .entry-del").forEach((b) =>
     b.addEventListener("click", () => {
       store.set(LS.xm, store.get(LS.xm, []).filter((y) => y.ts !== +b.dataset.k));
@@ -577,7 +692,7 @@ function exportLifeMarkdown() {
   st.forEach((s) => L.push(`- **${s.date} · ${s.minutes} 分钟**：${s.book}${s.feeling ? "\n  - " + s.feeling : ""}`));
   const jr = store.get(LS.jr, {});
   const jkeys = Object.keys(jr).sort();
-  const JL = [["special", "今日微光"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["words", "对自己说的话"]];
+  const JL = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["words", "对自己说的话"]];
   L.push(`\n## 📔 日记（${jkeys.length} 天）`);
   jkeys.forEach((k) => {
     L.push(`\n### ${k}`);
@@ -634,6 +749,7 @@ renderChips();
 renderEx();
 renderWt();
 renderSt();
+syncSubjectHint();
 renderPomo();
 loadJournal();
 renderXm();

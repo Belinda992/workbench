@@ -160,20 +160,13 @@
         <!-- 元气日常（橙） -->
         <div class="view" id="view-life">
           <h2 class="view-title c-orange">🍊 元气日常</h2>
-          
-          <div class="date-pick" data-tone="orange">
-            <span class="dp-label">📅 记录日期</span>
-            <button class="dp-nav" id="lifePrevDay" type="button" title="前一天">‹</button>
-            <input type="date" id="lifeDate" />
-            <button class="dp-nav" id="lifeNextDay" type="button" title="后一天">›</button>
-            <button class="dp-quick" data-d="0" type="button">今天</button>
-            <button class="dp-quick" data-d="-1" type="button">昨天</button>
-            <span class="dp-hint" id="lifeDateHint"></span>
-          </div>
 
           <div class="today-chips" id="todayChips"></div>
 
-          <!-- 1 运动打卡 -->
+          <!-- 主题一：健康 -->
+          <section class="life-theme">
+            <div class="theme-head th-green">🟢 健康</div>
+            <!-- 1 运动打卡 -->
           <div class="life-block">
             <div class="life-head">🧘 运动打卡 <span class="muted">主要是瑜伽</span></div>
             <form id="exForm" class="life-form">
@@ -194,6 +187,7 @@
               </div>
               <button type="submit" class="btn">保存打卡</button>
             </form>
+            <div class="focus-banner" id="exFocusBanner" style="display:none"></div>
             <div class="entry-list" id="exList"></div>
           </div>
 
@@ -212,48 +206,70 @@
               <button type="submit" class="btn">记录</button>
             </form>
             <div class="chart-card"><div class="chart-title">近期趋势</div><div id="wtChart" class="chart-box"></div></div>
+            <div class="focus-banner" id="wtFocusBanner" style="display:none"></div>
             <div class="entry-list" id="wtList"></div>
           </div>
+          </section>
 
-          <!-- 3 学习 · 番茄钟 -->
-          <div class="life-block">
-            <div class="life-head">🍅 学习 · 番茄钟 <span class="muted">主要是阅读</span></div>
-            <div class="pomo">
-              <div class="pomo-time" id="pomoTime">25:00</div>
-              <div class="pomo-mode m-work" id="pomoMode">专注</div>
-              <div class="pomo-btns">
-                <button class="btn" id="pomoToggle">开始</button>
-                <button class="btn ghost" id="pomoReset">重置</button>
+          <!-- 主题二：学习 -->
+          <section class="life-theme">
+            <div class="theme-head th-blue">🔵 学习</div>
+            <div class="life-block">
+              <div class="life-head">🍅 专注番茄钟</div>
+              <div class="pomo">
+                <div class="pomo-time" id="pomoTime">25:00</div>
+                <div class="pomo-mode m-work" id="pomoMode">专注</div>
+                <div class="pomo-btns">
+                  <button class="btn" id="pomoToggle">开始</button>
+                  <button class="btn ghost" id="pomoReset">重置</button>
+                </div>
+                <div class="pomo-focus">今日累计专注：<b id="pomoFocus">0</b> 分钟</div>
               </div>
-              <div class="pomo-focus">今日累计专注：<b id="pomoFocus">0</b> 分钟</div>
             </div>
-            <form id="stForm" class="life-form">
-              <div class="lf-row">
-                <label>读了什么</label>
-                <input id="stBook" placeholder="书名 / 主题" />
-              </div>
-              <div class="lf-row">
-                <label>时长(分)</label>
-                <input id="stMin" type="number" placeholder="如 25" />
-              </div>
-              <div class="lf-row">
-                <label>感受</label>
-                <textarea id="stFeeling" placeholder="收获、想法、触动…"></textarea>
-              </div>
-              <button type="submit" class="btn">保存阅读记录</button>
-            </form>
-            <div class="entry-list" id="stList"></div>
-          </div>
+            <div class="life-block">
+              <div class="life-head">📚 学习记录</div>
+              <div class="focus-banner" id="stSubjectHint" style="display:none"></div>
+              <form id="stForm" class="life-form">
+                <div class="lf-row">
+                  <label>主体（最近在学什么）</label>
+                  <input id="stSubject" placeholder="如 英语 / 投资 / 写作 / 视频剪辑" />
+                </div>
+                <div class="lf-row">
+                  <label>时间段</label>
+                  <input id="stPeriod" placeholder="如 上午 09:00–10:30" />
+                </div>
+                <div class="lf-row">
+                  <label>今天学的范围（从哪里到哪里）</label>
+                  <input id="stRange" placeholder="如 第3章 → 第5章 / P40–P80" />
+                </div>
+                <div class="lf-row">
+                  <label>时长(分钟)</label>
+                  <input id="stMin" type="number" placeholder="如 60" />
+                </div>
+                <div class="lf-row">
+                  <label>输出内容</label>
+                  <textarea id="stOutput" placeholder="今天的产出：笔记 / 练习 / 作业 / 作品…"></textarea>
+                </div>
+                <button type="submit" class="btn">保存学习记录</button>
+              </form>
+              <div class="focus-banner" id="stFocusBanner" style="display:none"></div>
+              <div class="entry-list" id="stList"></div>
+            </div>
+          </section>
 
-          <!-- 4 当日日记 -->
+          <!-- 主题三：日记 -->
+          <section class="life-theme">
+            <div class="theme-head th-purple">🟣 日记</div>
+            <!-- 4 当日日记 -->
           <div class="life-block">
             <div class="life-head">📔 <span id="jrHeadTitle">当日日记</span> <span class="muted" id="jrHeadHint">模板式</span></div>
             <div class="journal">
-              <div class="jf"><label>今日微光</label><textarea id="jrSpecial" placeholder="今天那道特别的、发光的小瞬间…"></textarea></div>
-              <div class="jf"><label>成就</label><textarea id="jrAch" placeholder="今天完成 / 做到的事"></textarea></div>
-              <div class="jf"><label>感恩</label><textarea id="jrGrat" placeholder="今天感恩的人 / 事"></textarea></div>
-              <div class="jf"><label>反思</label><textarea id="jrRef" placeholder="可以做得更好的地方"></textarea></div>
-              <div class="jf"><label>对自己说的话</label><textarea id="jrWords" placeholder="鼓励 / 提醒自己的一句话"></textarea></div>
+              <div class="jf"><label>⭐ 星星口袋</label><textarea id="jrSpecial" placeholder="今天那些特别的、发光的小瞬间…"></textarea></div>
+              <div class="jf"><label>🏆 成就（三行）</label><textarea id="jrAch" class="fill3" rows="3" placeholder="1. 今天做成 / 突破的事，一行一件&#10;2.&#10;3."></textarea></div>
+              <div class="jf"><label>💗 感恩（三行）</label><textarea id="jrGrat" class="fill3" rows="3" placeholder="1. 今天感恩的人或事&#10;2.&#10;3."></textarea></div>
+              <div class="jf"><label>🪞 反思（三行）</label><textarea id="jrRef" class="fill3" rows="3" placeholder="1. 可以做得更好的地方&#10;2.&#10;3."></textarea></div>
+              <div class="jf"><label>💌 对自己说的话</label><textarea id="jrWords" placeholder="鼓励 / 提醒自己的一句话"></textarea></div>
+              <div class="jf"><label>🖼️ 插入图片</label><input type="file" id="jrPhoto" accept="image/*" /><img id="jrPreview" class="photo-prev" alt="预览" /></div>
               <div class="export-row">
                 <button class="btn ghost" id="jrWeek">📅 导出本周</button>
                 <button class="btn ghost" id="jrMonth">🗓️ 导出本月</button>
@@ -262,8 +278,19 @@
               <span class="jr-saved" id="jrSaved"></span>
             </div>
           </div>
+          </section>
 
-          <!-- 5 小满成长手账 已移至独立主题「小满成长」 -->
+          <!-- 记录日期 放到底部 -->
+          <div class="date-pick date-pick-bottom" data-tone="orange">
+            <span class="dp-label">📅 记录日期</span>
+            <button class="dp-nav" id="lifePrevDay" type="button" title="前一天">‹</button>
+            <input type="date" id="lifeDate" />
+            <button class="dp-nav" id="lifeNextDay" type="button" title="后一天">›</button>
+            <button class="dp-quick" data-d="0" type="button">今天</button>
+            <button class="dp-quick" data-d="-1" type="button">昨天</button>
+            <span class="dp-hint" id="lifeDateHint"></span>
+          </div>
+
           <div class="export-bar">
             <button class="btn ghost" id="btnExportLife">📤 导出本主题 (Markdown)</button>
           </div>
@@ -310,6 +337,7 @@
               </div>
               <button type="submit" class="btn" id="xmSaveBtn">保存今日记录</button>
             </form>
+            <div class="focus-banner" id="xmFocusBanner" style="display:none"></div>
             <div class="entry-list" id="xmList"></div>
           </div>
 
