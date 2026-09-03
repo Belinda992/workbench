@@ -5,9 +5,12 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 // ---------- 云端同步层 ----------
 const SYNC = {
-  mode: localStorage.getItem("wb_sync_mode") || "gist", // gist | node
+  mode: localStorage.getItem("wb_sync_mode") || "repo", // repo | gist | node
   token: localStorage.getItem("wb_sync_token") || "",
   gistId: localStorage.getItem("wb_gist_id") || "",
+  repo: localStorage.getItem("wb_sync_repo") || "Belinda992/yinji-data",
+  path: "data.json",
+  branch: "main",
   base: location.pathname.replace(/\/[^/]*$/, "") + "/api",
   pushTimer: null,
 };
@@ -29,25 +32,134 @@ function schedulePush() {
 }
 function collectBlob() {
   const blob = {};
+  const SKIP = ["wb_sync_token", "wb_gist_id", "wb_sync_mode", "wb_sync_repo"];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && k.startsWith("wb_") && k !== "wb_sync_token" && k !== "wb_gist_id" && k !== "wb_sync_mode") {
+    if (k && k.startsWith("wb_") && !SKIP.includes(k)) {
       try { blob[k] = JSON.parse(localStorage.getItem(k)); } catch (_) {}
     }
   }
   return blob;
 }
+// 判断一个值是否算"空"
+function isEmptyVal(v) {
+  if (v === null || v === undefined || v === "") return true;
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === "object") return Object.keys(v).length === 0;
+  return false;
+}
+// 云端 → 本地。安全策略：本地有内容、云端是空的 → 保留本地（防止空数据覆盖真数据）
 function applyBlob(blob) {
   const keys = Object.keys(blob || {});
   if (!keys.length) return false;
+  let skipped = 0;
   keys.forEach((k) => {
-    if (k.startsWith("wb_") && k !== "wb_sync_token") {
-      try { localStorage.setItem(k, JSON.stringify(blob[k])); } catch (_) {}
+    if (!k.startsWith("wb_") || k === "wb_sync_token") return;
+    const remote = blob[k];
+    if (isEmptyVal(remote)) {
+      let localRaw = null;
+      try { localRaw = localStorage.getItem(k); } catch (_) {}
+      if (localRaw) {
+        let localVal = null;
+        try { localVal = JSON.parse(localRaw); } catch (_) {}
+        if (localVal !== null && !isEmptyVal(localVal)) { skipped++; return; }  // 保住本地数据
+      }
     }
+    try { localStorage.setItem(k, JSON.stringify(remote)); } catch (_) {}
   });
   return true;
 }
-// ---- GitHub Gist 后端（零服务器，跨设备同步） ----
+// ---- GitHub 私有仓库后端（Git Data API，单文件可到 100MB，照片也放得下） ----
+function ghHeaders() {
+  return {
+    "Authorization": "Bearer " + SYNC.token,
+    "Accept": "application/vnd.github+json",
+    "Content-Type": "application/json",
+  };
+}
+async function repoErr(r, tag) {
+  if (r.status === 401) setSyncStatus("err", "令牌无效");
+  else if (r.status === 403) setSyncStatus("err", "无权限/超限");
+  else if (r.status === 404) setSyncStatus("err", "仓库不存在");
+  else setSyncStatus("off", "未连接");
+  console.warn("[sync]" + (tag || ""), r.status);
+}
+const API = "https://api.github.com/repos/";
+// UTF-8 安全的 base64
+function b64encode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function b64decode(b64) {
+  const bin = atob(b64.replace(/\n/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+// 推送：blob → tree → commit → 移动分支指针
+async function repoPush(blob) {
+  const content = b64encode(JSON.stringify(blob));
+  try {
+    const refR = await fetch(`${API}${SYNC.repo}/git/ref/heads/${SYNC.branch}`, { headers: ghHeaders() });
+    if (!refR.ok) { repoErr(refR, "ref"); return; }
+    const parentSha = (await refR.json()).object.sha;
+
+    const blobR = await fetch(`${API}${SYNC.repo}/git/blobs`, {
+      method: "POST", headers: ghHeaders(),
+      body: JSON.stringify({ content, encoding: "base64" }),
+    });
+    if (!blobR.ok) { repoErr(blobR, "blob"); return; }
+    const blobSha = (await blobR.json()).sha;
+
+    const treeR = await fetch(`${API}${SYNC.repo}/git/trees`, {
+      method: "POST", headers: ghHeaders(),
+      body: JSON.stringify({
+        base_tree: parentSha,
+        tree: [{ path: SYNC.path, mode: "100644", type: "blob", sha: blobSha }],
+      }),
+    });
+    if (!treeR.ok) { repoErr(treeR, "tree"); return; }
+    const treeSha = (await treeR.json()).sha;
+
+    const cmtR = await fetch(`${API}${SYNC.repo}/git/commits`, {
+      method: "POST", headers: ghHeaders(),
+      body: JSON.stringify({ message: "sync " + new Date().toISOString(), tree: treeSha, parents: [parentSha] }),
+    });
+    if (!cmtR.ok) { repoErr(cmtR, "commit"); return; }
+    const commitSha = (await cmtR.json()).sha;
+
+    const upR = await fetch(`${API}${SYNC.repo}/git/refs/heads/${SYNC.branch}`, {
+      method: "PATCH", headers: ghHeaders(), body: JSON.stringify({ sha: commitSha }),
+    });
+    if (upR.ok) setSyncStatus("synced", "已同步云端");
+    else repoErr(upR, "ref-update");
+  } catch (_) { setSyncStatus("off", "未连接"); }
+}
+// 拉取：tree → blob（raw）
+async function repoPull() {
+  try {
+    const treeR = await fetch(`${API}${SYNC.repo}/git/trees/${SYNC.branch}`, { headers: ghHeaders() });
+    if (!treeR.ok) { repoErr(treeR, "tree-get"); return false; }
+    const tree = await treeR.json();
+    const node = (tree.tree || []).find((t) => t.path === SYNC.path && t.type === "blob");
+    if (!node) { await repoPush(collectBlob()); return true; }
+    const blobR = await fetch(`${API}${SYNC.repo}/git/blobs/${node.sha}`, {
+      headers: { "Authorization": "Bearer " + SYNC.token, "Accept": "application/vnd.github.raw" },
+    });
+    if (!blobR.ok) { repoErr(blobR, "blob-get"); return false; }
+    const txt = await blobR.text();
+    let remote = null;
+    try { remote = JSON.parse(txt); } catch (_) { remote = null; }
+    if (remote && Object.keys(remote).length) applyBlob(remote);
+    // 合并后再推一次：保证本机的数据也上云（哪台设备后连，哪台的数据为准）
+    await repoPush(collectBlob());
+    setSyncStatus("synced", "已同步云端");
+    return true;
+  } catch (_) { setSyncStatus("off", "未连接"); return false; }
+}
+// ---- GitHub Gist 后端（零服务器，跨设备同步；需令牌勾选 gist 权限） ----
 async function gistError(r) {
   if (r.status === 401) setSyncStatus("err", "令牌无效");
   else if (r.status === 403) setSyncStatus("err", "无 gist 权限");
@@ -128,10 +240,12 @@ async function nodePull() {
 async function pushAll() {
   if (!SYNC.token) return;
   const blob = collectBlob();
-  if (SYNC.mode === "gist") await gistPush(blob);
+  if (SYNC.mode === "repo") await repoPush(blob);
+  else if (SYNC.mode === "gist") await gistPush(blob);
   else await nodePush(blob);
 }
 async function syncPull() {
+  if (SYNC.mode === "repo") return await repoPull();
   if (SYNC.mode === "gist") return await gistPull();
   return await nodePull();
 }
@@ -921,11 +1035,13 @@ function hideOverlay() { const o = $("#syncOverlay"); if (o) o.style.display = "
 function openSyncLogin() {
   const m = $("#syncModal"); if (m) m.style.display = "flex";
   const p = $("#syncPwd"); if (p) { p.value = ""; p.focus(); }
+  const g = $("#syncGistId");
+  if (g && !g.value) g.value = SYNC.mode === "gist" ? (SYNC.gistId || "") : (SYNC.repo || "Belinda992/yinji-data");
   const box = $("#syncCodeBox"); if (box) box.style.display = "none";
 }
-// 同步码：把 token + gistId 打包成一段文本，方便在设备之间传递
+// 同步码：把 token + 仓库 打包成一段文本，方便在设备之间传递
 function buildSyncCode() {
-  return JSON.stringify({ wb: 1, token: SYNC.token || "", gist: SYNC.gistId || "" });
+  return JSON.stringify({ wb: 1, mode: "repo", token: SYNC.token || "", repo: SYNC.repo || "" });
 }
 function showSyncCode() {
   const box = $("#syncCodeBox"), ta = $("#syncCodeText");
@@ -944,7 +1060,7 @@ async function copySyncCode() {
     if (ta) { ta.select(); document.execCommand("copy"); toast("同步码已复制 ✅"); }
   }
 }
-// 粘贴同步码时自动拆开填入 token / gistId
+// 粘贴同步码时自动拆开填入 token / 仓库
 function tryParseSyncCode(raw) {
   const s = (raw || "").trim();
   if (!s.startsWith("{")) return false;
@@ -953,7 +1069,7 @@ function tryParseSyncCode(raw) {
     if (!o || o.wb !== 1 || !o.token) return false;
     const p = $("#syncPwd"), g = $("#syncGistId");
     if (p) p.value = o.token;
-    if (g) g.value = o.gist || "";
+    if (g) g.value = o.repo || o.gist || "";
     return true;
   } catch (_) { return false; }
 }
@@ -963,13 +1079,20 @@ async function submitSyncLogin() {
   if (tryParseSyncCode(raw)) toast("已识别同步码 ✅");
   const token = ($("#syncPwd")?.value || "").trim();
   if (!token) return;
-  const gid = ($("#syncGistId")?.value || "").trim();
-  SYNC.mode = "gist";
+  const repoRaw = ($("#syncGistId")?.value || "").trim();
+  // 兼容：如果填的是 Gist ID（32 位十六进制）就走 gist 模式，否则走仓库模式
+  const isGist = /^[0-9a-f]{32}$/i.test(repoRaw);
+  SYNC.mode = isGist ? "gist" : "repo";
   SYNC.token = token;
-  SYNC.gistId = gid;
-  localStorage.setItem("wb_sync_mode", "gist");
+  if (isGist) { SYNC.gistId = repoRaw; localStorage.setItem("wb_gist_id", repoRaw); localStorage.removeItem("wb_sync_repo"); }
+  else {
+    SYNC.repo = repoRaw || "Belinda992/yinji-data";
+    SYNC.gistId = "";
+    localStorage.setItem("wb_sync_repo", SYNC.repo);
+    localStorage.removeItem("wb_gist_id");
+  }
+  localStorage.setItem("wb_sync_mode", SYNC.mode);
   localStorage.setItem("wb_sync_token", token);
-  if (gid) localStorage.setItem("wb_gist_id", gid); else localStorage.removeItem("wb_gist_id");
   const m = $("#syncModal"); if (m) m.style.display = "none";
   showOverlay("正在连接云端…");
   const ok = await syncPull();
