@@ -368,6 +368,12 @@ body {
 .lf-row select:focus, .lf-row input:focus, .lf-row textarea:focus { border-color: var(--brand); }
 .lf-row textarea { min-height: 70px; resize: vertical; line-height: 1.6; }
 .photo-prev { max-width: 160px; max-height: 160px; border-radius: 10px; border: 1px solid var(--line); margin-top: 8px; display: none; }
+.photo-prevs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.pp-wrap { position: relative; display: inline-block; }
+.pp-img { width: 110px; height: 110px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.pp-del { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; border: none; background: #e5484d; color: #fff; cursor: pointer; font-size: 12px; line-height: 22px; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.entry-text.to-xm { background: #fff7e6; border-radius: 8px; padding: 6px 8px; margin-top: 4px; }
+.date-pick-bottom { margin-top: 18px; }
 
 .btn {
   align-self: flex-start; padding: 10px 20px; border: none;

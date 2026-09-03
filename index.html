@@ -297,34 +297,14 @@
 
         <!-- 小满成长（黄） -->
         <div class="view" id="view-xiaoman">
-          <h2 class="view-title c-yellow">👑 小满成长手账</h2>
-          <div class="date-pick" data-tone="yellow">
-            <span class="dp-label">📅 记录日期</span>
-            <button class="dp-nav" id="xmPrevDay" type="button" title="前一天">‹</button>
-            <input type="date" id="xmDate" />
-            <button class="dp-nav" id="xmNextDay" type="button" title="后一天">›</button>
-            <button class="dp-quick" data-d="0" type="button">今天</button>
-            <button class="dp-quick" data-d="-1" type="button">昨天</button>
-            <span class="dp-hint" id="xmDateHint"></span>
-          </div>
+          <h2 class="view-title c-yellow">👑 小满成长</h2>
 
           <div class="today-chips" id="xmTodayChip"></div>
 
-          <!-- 今日记录 -->
+          <!-- 成长记录 -->
           <div class="life-block">
-            <div class="life-head">📅 <span id="xmHeadTitle">今日记录</span> <span class="muted" id="xmHeadHint">记录小满的一天</span></div>
+            <div class="life-head">📅 <span id="xmHeadTitle">成长记录</span></div>
             <form id="xmForm" class="life-form">
-              <div class="lf-row">
-                <label>心情</label>
-                <select id="xmMood">
-                  <option>😊 开心</option><option>😢 委屈</option><option>😡 生气</option><option>🤔 好奇</option><option>😴 困倦</option><option>🌟 闪亮</option>
-                </select>
-              </div>
-              <div class="lf-row">
-                <label>今日照片</label>
-                <input type="file" id="xmPhoto" accept="image/*" />
-                <img id="xmPreview" class="photo-prev" alt="预览" />
-              </div>
               <div class="xm-grid">
                 <div class="lf-row"><label>📖 语文</label><textarea id="xmYuwen" placeholder="今天读了 / 说了什么…"></textarea></div>
                 <div class="lf-row"><label>🔢 数学</label><textarea id="xmMath" placeholder="数数、逻辑…"></textarea></div>
@@ -332,12 +312,25 @@
                 <div class="lf-row"><label>🏃 运动</label><textarea id="xmSport" placeholder="跑跳、平衡…"></textarea></div>
                 <div class="lf-row"><label>🎨 艺术</label><textarea id="xmArt" placeholder="画画、音乐…"></textarea></div>
                 <div class="lf-row"><label>✨ 特别记录</label><textarea id="xmSpecial" placeholder="今天特别的事…"></textarea></div>
-                <div class="lf-row xm-full"><label>💌 今天想对小满说的话</label><textarea id="xmWords" placeholder="写给孩子的一句话…"></textarea></div>
               </div>
-              <button type="submit" class="btn" id="xmSaveBtn">保存今日记录</button>
+              <div class="lf-row">
+                <label>今日照片（可多张）</label>
+                <input type="file" id="xmPhoto" accept="image/*" multiple />
+                <div id="xmPreview" class="photo-prevs"></div>
+              </div>
+              <button type="submit" class="btn" id="xmSaveBtn">保存记录</button>
             </form>
             <div class="focus-banner" id="xmFocusBanner" style="display:none"></div>
             <div class="entry-list" id="xmList"></div>
+          </div>
+
+          <!-- To小满 -->
+          <div class="life-block">
+            <div class="life-head">💌 To小满 <span class="muted">今天想对孩子说的话</span></div>
+            <form id="toXmForm" class="life-form">
+              <div class="lf-row"><label>想说的话</label><textarea id="xmWords" placeholder="写给孩子的一句话…"></textarea></div>
+              <button type="submit" class="btn" id="toXmSaveBtn">保存</button>
+            </form>
           </div>
 
           <!-- 成长里程碑 -->
@@ -363,6 +356,17 @@
           </div>
           <div class="export-bar">
             <button class="btn ghost" id="btnExportXm">📤 导出小满数据 (Markdown)</button>
+          </div>
+
+          <!-- 记录日期移到最底端 -->
+          <div class="date-pick date-pick-bottom" data-tone="yellow">
+            <span class="dp-label">📅 记录日期</span>
+            <button class="dp-nav" id="xmPrevDay" type="button" title="前一天">‹</button>
+            <input type="date" id="xmDate" />
+            <button class="dp-nav" id="xmNextDay" type="button" title="后一天">›</button>
+            <button class="dp-quick" data-d="0" type="button">今天</button>
+            <button class="dp-quick" data-d="-1" type="button">昨天</button>
+            <span class="dp-hint" id="xmDateHint"></span>
           </div>
         </div>
 

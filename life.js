@@ -20,7 +20,6 @@ const XM_FIELDS = [
   ["sport", "🏃 运动"],
   ["art", "🎨 艺术"],
   ["special", "✨ 特别记录"],
-  ["words", "💌 今天想对小满说的话"],
 ];
 
 const todayStr = () => {
@@ -128,9 +127,7 @@ function syncXmDateUI() {
     }
   }
   const ht = document.getElementById("xmHeadTitle");
-  if (ht) ht.textContent = curXmDate === todayStr() ? "今日记录" : `${dateLabel(curXmDate)}记录`;
-  const hh = document.getElementById("xmHeadHint");
-  if (hh) hh.textContent = curXmDate === todayStr() ? "记录小满的一天" : `补录 ${curXmDate}`;
+  if (ht) ht.textContent = curXmDate === todayStr() ? "成长记录" : `${dateLabel(curXmDate)}成长记录`;
   const sb = document.getElementById("xmSaveBtn");
   if (sb) sb.textContent = has ? "更新这条记录" : "保存记录";
 }
@@ -527,43 +524,53 @@ function exportJournal(range) {
 $("#jrWeek").addEventListener("click", () => exportJournal("week"));
 $("#jrMonth").addEventListener("click", () => exportJournal("month"));
 
-// ---------- 5. 小满成长手账 ----------
-let xmPhotoData = null;
+// ---------- 5. 小满成长 ----------
+let xmPhotoData = [];
 let msPhotoData = null;
+function renderXmPreviews() {
+  const box = $("#xmPreview");
+  if (!box) return;
+  box.innerHTML = xmPhotoData.map((src, i) =>
+    `<span class="pp-wrap"><img class="pp-img" src="${src}" alt="预览"/><button type="button" class="pp-del" data-i="${i}" title="移除">✕</button></span>`
+  ).join("");
+  $$("#xmPreview .pp-del").forEach((b) =>
+    b.addEventListener("click", () => {
+      xmPhotoData.splice(+b.dataset.i, 1);
+      renderXmPreviews();
+    })
+  );
+}
 $("#xmPhoto").addEventListener("change", async (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  xmPhotoData = await fileToDataURL(f);
-  const prev = $("#xmPreview");
-  prev.src = xmPhotoData;
-  prev.style.display = "block";
+  const files = Array.from(e.target.files || []);
+  for (const f of files) {
+    if (f) xmPhotoData.push(await fileToDataURL(f));
+  }
+  renderXmPreviews();
+  e.target.value = "";   // 允许再次选择同一张
 });
 $("#xmForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const rec = {
     date: curXmDate,
-    mood: $("#xmMood").value,
-    photo: xmPhotoData,
+    photo: xmPhotoData.slice(),
     yuwen: $("#xmYuwen").value.trim(),
     math: $("#xmMath").value.trim(),
     english: $("#xmEnglish").value.trim(),
     sport: $("#xmSport").value.trim(),
     art: $("#xmArt").value.trim(),
     special: $("#xmSpecial").value.trim(),
-    words: $("#xmWords").value.trim(),
     ts: Date.now(),
   };
-  if (!XM_FIELDS.some(([k]) => rec[k])) return;
+  if (!XM_FIELDS.some(([k]) => rec[k]) && xmPhotoData.length === 0) return;
   const list = store.get(LS.xm, []);
   // 一天只保留一条：这天已有记录就更新，没有才新增（补录/修改都不会产生重复）
   const existing = list.filter((x) => x.date === curXmDate).sort((a, b) => b.ts - a.ts)[0];
   if (existing) {
     Object.assign(existing, {
-      mood: rec.mood,
       yuwen: rec.yuwen, math: rec.math, english: rec.english,
-      sport: rec.sport, art: rec.art, special: rec.special, words: rec.words,
+      sport: rec.sport, art: rec.art, special: rec.special,
     });
-    if (rec.photo) existing.photo = rec.photo;   // 没重新选照片就保留原来的
+    if (rec.photo.length) existing.photo = rec.photo;   // 没重新选照片就保留原来的
   } else {
     list.push(rec);
   }
@@ -571,13 +578,12 @@ $("#xmForm").addEventListener("submit", (e) => {
   renderXm(); renderChips(); renderXmChip(); syncXmDateUI();
   toast(existing
     ? dateLabel(curXmDate) + "记录已更新 👧"
-    : (curXmDate === todayStr() ? "小满今日记录已保存 👧" : dateLabel(curXmDate) + "记录已补录 👧"));
+    : (curXmDate === todayStr() ? "小满成长记录已保存 👧" : dateLabel(curXmDate) + "记录已补录 👧"));
 });
 // 把选中日期已有的记录回填到表单（这天还没记录就把表单清空）
 function loadXmForm() {
   const list = store.get(LS.xm, []).filter((x) => x.date === curXmDate).sort((a, b) => b.ts - a.ts);
   const rec = list[0] || {};
-  $("#xmMood").value = rec.mood || "😊 开心";
   $("#xmYuwen").value = rec.yuwen || "";
   $("#xmMath").value = rec.math || "";
   $("#xmEnglish").value = rec.english || "";
@@ -585,11 +591,24 @@ function loadXmForm() {
   $("#xmArt").value = rec.art || "";
   $("#xmSpecial").value = rec.special || "";
   $("#xmWords").value = rec.words || "";
-  xmPhotoData = null;
-  const prev = $("#xmPreview");
-  if (rec.photo) { prev.src = rec.photo; prev.style.display = "block"; }
-  else { prev.style.display = "none"; prev.removeAttribute("src"); }
+  // 照片：兼容旧版单张 / 新版多张
+  xmPhotoData = rec.photo ? (Array.isArray(rec.photo) ? rec.photo.slice() : [rec.photo]) : [];
+  renderXmPreviews();
 }
+
+// To小满：单独保存「今天想对小满说的话」，与成长记录同属一天
+$("#toXmForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const words = $("#xmWords").value.trim();
+  if (!words) return;
+  const list = store.get(LS.xm, []);
+  const existing = list.filter((x) => x.date === curXmDate).sort((a, b) => b.ts - a.ts)[0];
+  if (existing) existing.words = words;
+  else list.push({ date: curXmDate, words, ts: Date.now() });
+  store.set(LS.xm, list);
+  renderXm(); renderChips(); renderXmChip(); syncXmDateUI();
+  toast("已保存到 To小满 💌");
+});
 
 function renderXm() {
   const all = store.get(LS.xm, []).slice().sort(byDateDesc);
@@ -615,11 +634,14 @@ function renderXm() {
       if (x[k]) body += `<div class="entry-text"><b>${lab}：</b>${escapeHtml(x[k]).replace(/\n/g, "<br>")}</div>`;
     });
     if (!body && x.content) body = `<div class="entry-text">${escapeHtml(x.content).replace(/\n/g, "<br>")}</div>`;
+    if (x.words) body += `<div class="entry-text to-xm"><b>💌 To小满：</b>${escapeHtml(x.words).replace(/\n/g, "<br>")}</div>`;
     const head = x.title ? `<b>${escapeHtml(x.title)}</b><br>` : "";
+    const photos = x.photo ? (Array.isArray(x.photo) ? x.photo : [x.photo]) : [];
+    const photoHtml = photos.map((src) => `<img class="entry-photo" src="${src}" alt="照片"/>`).join("");
     return `<div class="entry${x.date === curXmDate ? " today" : ""}">
-      ${x.photo ? `<img class="entry-photo" src="${x.photo}" alt="照片"/>` : ""}
+      ${photoHtml}
       <div class="entry-body">
-        <div class="entry-meta">${x.date} · ${x.mood}</div>
+        <div class="entry-meta">${x.date}</div>
         ${head}${body || '<div class="entry-text muted">(空)</div>'}
       </div>
       <button class="entry-del" data-k="${x.ts}">✕</button>
@@ -708,12 +730,14 @@ function exportLifeMarkdown() {
 
 // 小满成长主题 → Markdown
 function exportXmMarkdown() {
-  const L = [`# 小满成长手账导出 · ${todayStr()}\n`];
+  const L = [`# 小满成长导出 · ${todayStr()}\n`];
   const xm = store.get(LS.xm, []).slice().sort((a, b) => b.ts - a.ts);
-  L.push(`## 📅 今日记录（${xm.length} 条）`);
+  L.push(`## 📅 成长记录（${xm.length} 条）`);
   xm.forEach((x) => {
-    L.push(`\n### ${x.date} · ${x.mood}`);
+    const photos = x.photo ? (Array.isArray(x.photo) ? x.photo : [x.photo]) : [];
+    L.push(`\n### ${x.date}${photos.length ? ` · 📷${photos.length}张` : ""}`);
     XM_FIELDS.forEach(([k, lab]) => { if (x[k]) L.push(`- **${lab}**：${x[k]}`); });
+    if (x.words) L.push(`- **💌 To小满**：${x.words}`);
   });
   const ms = store.get(LS.ms, []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
   L.push(`\n## 🌟 成长里程碑（${ms.length} 条）`);
