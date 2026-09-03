@@ -195,8 +195,10 @@ function fileToDataURL(file, maxW = 1000, q = 0.72) {
   });
 }
 
-// ---------- 今日状态 chips ----------
+// ---------- 今日状态 chips（若页面未展示则静默跳过） ----------
 function renderChips() {
+  const chipEl = $("#todayChips");
+  if (!chipEl) return;
   const t = curLifeDate;
   const ex = store.get(LS.ex, []).some((e) => e.date === t);
   const wt = store.get(LS.wt, []).some((e) => e.date === t);
@@ -204,7 +206,7 @@ function renderChips() {
   const jr = !!store.get(LS.jr, {})[t];
   const chips = [["运动", ex], ["体重", wt], ["学习", st], ["日记", jr]];
   const isToday = t === todayStr();
-  $("#todayChips").innerHTML =
+  chipEl.innerHTML =
     chips.map(([n, done]) => `<span class="chip ${done ? "chip-on" : "chip-off"}">${done ? "✅" : "⬜"} ${n}</span>`).join("") +
     (isToday ? "" : `<span class="chip chip-note">📌 正在补录 ${dateLabel(t)}</span>`);
 }
@@ -465,6 +467,7 @@ function loadJournal() {
   $("#jrGrat").value = j.grat || "";
   $("#jrAch").value = j.ach || "";
   $("#jrRef").value = j.ref || "";
+  $("#jrOther").value = j.other || "";
   $("#jrWords").value = j.words || "";
   jrPhotoData = j.photo || null;
   const prev = $("#jrPreview");
@@ -478,6 +481,7 @@ $("#jrSave").addEventListener("click", () => {
     grat: $("#jrGrat").value.trim(),
     ach: $("#jrAch").value.trim(),
     ref: $("#jrRef").value.trim(),
+    other: $("#jrOther").value.trim(),
     words: $("#jrWords").value.trim(),
   };
   if (jrPhotoData) rec.photo = jrPhotoData;
@@ -504,7 +508,7 @@ function exportJournal(range) {
   }
   const keys = Object.keys(all).filter((k) => k >= startStr).sort();
   if (!keys.length) { toast("该区间还没有日记哦"); return; }
-  const LABELS = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["words", "对自己说的话"]];
+  const LABELS = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["other", "其他"], ["words", "对自己说的话"]];
   let html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>日记回顾</title>
 <style>body{font-family:-apple-system,"PingFang SC",sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1f2430;line-height:1.7}h1{font-size:22px}hr{border:none;border-top:1px solid #e8ebf2;margin:18px 0}.date{color:#8a93a6;font-size:13px;margin-bottom:6px}.lab{color:#2e9e5e;font-weight:600;margin-right:6px}.sec{margin:4px 0}.photo{max-width:240px;border-radius:10px;margin:8px 0;display:block}</style></head><body>
 <h1>${range === "week" ? "本周" : "本月"}日记回顾</h1>`;
@@ -692,7 +696,7 @@ function exportLifeMarkdown() {
   st.forEach((s) => L.push(`- **${s.date} · ${s.minutes} 分钟**：${s.book}${s.feeling ? "\n  - " + s.feeling : ""}`));
   const jr = store.get(LS.jr, {});
   const jkeys = Object.keys(jr).sort();
-  const JL = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["words", "对自己说的话"]];
+  const JL = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["other", "其他"], ["words", "对自己说的话"]];
   L.push(`\n## 📔 日记（${jkeys.length} 天）`);
   jkeys.forEach((k) => {
     L.push(`\n### ${k}`);
