@@ -313,6 +313,7 @@
                 <div class="lf-row"><label>📖 语文</label><textarea id="xmYuwen" placeholder="今天读了 / 说了什么…"></textarea></div>
                 <div class="lf-row"><label>🔢 数学</label><textarea id="xmMath" placeholder="数数、逻辑…"></textarea></div>
                 <div class="lf-row"><label>🔤 英语</label><textarea id="xmEnglish" placeholder="单词、儿歌…"></textarea></div>
+                <div class="lf-row"><label>🏫 幼儿园课程</label><textarea id="xmKg" placeholder="今天幼儿园上了什么课…"></textarea></div>
                 <div class="lf-row"><label>🏃 运动</label><textarea id="xmSport" placeholder="跑跳、平衡…"></textarea></div>
                 <div class="lf-row"><label>🎨 艺术</label><textarea id="xmArt" placeholder="画画、音乐…"></textarea></div>
                 <div class="lf-row"><label>✨ 特别记录</label><textarea id="xmSpecial" placeholder="今天特别的事…"></textarea></div>
@@ -803,6 +804,28 @@
         <button class="btn ghost" id="syncCancel">取消</button>
         <button class="btn ghost" id="btnShowSyncCode" type="button">显示同步码</button>
         <button class="btn" id="syncSubmit">连接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导出时间段选择弹窗 -->
+  <div class="modal" id="exportRangeModal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-title" id="exportRangeTitle">选择导出时间段</div>
+      <div class="er-quick">
+        <button class="btn ghost" type="button" data-er="all">全部</button>
+        <button class="btn ghost" type="button" data-er="week">本周</button>
+        <button class="btn ghost" type="button" data-er="month">本月</button>
+        <button class="btn ghost" type="button" data-er="lastmonth">上个月</button>
+      </div>
+      <div class="er-row">
+        <div class="lf-row"><label>开始日期</label><input type="date" id="erFrom" /></div>
+        <div class="lf-row"><label>结束日期</label><input type="date" id="erTo" /></div>
+      </div>
+      <p class="muted" id="erHint"></p>
+      <div class="modal-actions">
+        <button class="btn ghost" id="erCancel">取消</button>
+        <button class="btn" id="erOk">导出</button>
       </div>
     </div>
   </div>

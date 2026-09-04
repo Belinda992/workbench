@@ -17,6 +17,7 @@ const XM_FIELDS = [
   ["yuwen", "📖 语文"],
   ["math", "🔢 数学"],
   ["english", "🔤 英语"],
+  ["kg", "🏫 幼儿园课程"],
   ["sport", "🏃 运动"],
   ["art", "🎨 艺术"],
   ["special", "✨ 特别记录"],
@@ -559,6 +560,7 @@ $("#xmForm").addEventListener("submit", (e) => {
     yuwen: $("#xmYuwen").value.trim(),
     math: $("#xmMath").value.trim(),
     english: $("#xmEnglish").value.trim(),
+    kg: $("#xmKg").value.trim(),
     sport: $("#xmSport").value.trim(),
     art: $("#xmArt").value.trim(),
     special: $("#xmSpecial").value.trim(),
@@ -571,7 +573,7 @@ $("#xmForm").addEventListener("submit", (e) => {
   if (existing) {
     Object.assign(existing, {
       yuwen: rec.yuwen, math: rec.math, english: rec.english,
-      sport: rec.sport, art: rec.art, special: rec.special,
+      kg: rec.kg, sport: rec.sport, art: rec.art, special: rec.special,
     });
     if (rec.photo.length) existing.photo = rec.photo;   // 没重新选照片就保留原来的
   } else {
@@ -590,6 +592,7 @@ function loadXmForm() {
   $("#xmYuwen").value = rec.yuwen || "";
   $("#xmMath").value = rec.math || "";
   $("#xmEnglish").value = rec.english || "";
+  $("#xmKg").value = rec.kg || "";
   $("#xmSport").value = rec.sport || "";
   $("#xmArt").value = rec.art || "";
   $("#xmSpecial").value = rec.special || "";
@@ -722,17 +725,105 @@ function renderMilestone() {
     </div>`).join("") || '<div class="muted">还没有里程碑</div>';
 }
 
+// ---------- 导出时间段选择 ----------
+// 打开选择弹窗，确认后回调 cb(from, to)；from/to 为 YYYY-MM-DD 或 null（不限）
+function openRangeExport(title, cb) {
+  const m = $("#exportRangeModal");
+  if (!m) { cb(null, null); return; }
+  const t = $("#exportRangeTitle"); if (t) t.textContent = title || "选择导出时间段";
+  const fromI = $("#erFrom"), toI = $("#erTo"), hint = $("#erHint");
+  // 默认：全部
+  if (fromI) fromI.value = "";
+  if (toI) toI.value = "";
+  const updHint = () => {
+    if (!hint) return;
+    const f = fromI && fromI.value, tt = toI && toI.value;
+    if (!f && !tt) hint.textContent = "当前选择：全部时间";
+    else if (f && !tt) hint.textContent = `当前选择：${f} 起，到今天`;
+    else if (!f && tt) hint.textContent = `当前选择：${tt} 及之前`;
+    else hint.textContent = `当前选择：${f} 至 ${tt}`;
+  };
+  updHint();
+  if (fromI) fromI.onchange = updHint;
+  if (toI) toI.onchange = updHint;
+  m.style.display = "flex";
+
+  const ok = $("#erOk"), cancel = $("#erCancel");
+  const close = () => {
+    m.style.display = "none";
+    if (ok) ok.onclick = null;
+    if (cancel) cancel.onclick = null;
+    $$("#exportRangeModal [data-er]").forEach((b) => (b.onclick = null));
+  };
+  if (cancel) cancel.onclick = close;
+  if (ok) ok.onclick = () => {
+    let f = fromI && fromI.value ? fromI.value : null;
+    let tt = toI && toI.value ? toI.value : null;
+    if (f && tt && f > tt) { const tmp = f; f = tt; tt = tmp; }   // 起止写反了自动纠正
+    close();
+    cb(f, tt);
+  };
+  $$("#exportRangeModal [data-er]").forEach((b) => {
+    b.onclick = () => {
+      const k = b.dataset.er;
+      const now = new Date();
+      const y = now.getFullYear(), mo = now.getMonth() + 1;
+      const pad = (n) => String(n).padStart(2, "0");
+      if (k === "all") { fromI.value = ""; toI.value = ""; }
+      else if (k === "week") {
+        const d = new Date(now); const wd = (d.getDay() + 6) % 7;   // 周一为一周起点
+        d.setDate(d.getDate() - wd);
+        fromI.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        toI.value = todayStr();
+      } else if (k === "month") {
+        fromI.value = `${y}-${pad(mo)}-01`;
+        toI.value = todayStr();
+      } else if (k === "lastmonth") {
+        const pm = mo === 1 ? 12 : mo - 1, py = mo === 1 ? y - 1 : y;
+        const last = new Date(py, pm, 0).getDate();
+        fromI.value = `${py}-${pad(pm)}-01`;
+        toI.value = `${py}-${pad(pm)}-${pad(last)}`;
+      }
+      updHint();
+    };
+  });
+}
+// 日期串是否落在 [from, to] 内
+function inRange(d, from, to) {
+  const s = String(d || "");
+  if (!s) return false;
+  if (from && s < from) return false;
+  if (to && s > to) return false;
+  return true;
+}
+// 按时间段过滤数组（元素需带 date 字段）
+function byRange(arr, from, to) {
+  return arr.filter((x) => inRange(x.date, from, to));
+}
+// 按时间段过滤「日期 → 内容」的对象（日记用）
+function keysInRange(obj, from, to) {
+  return Object.keys(obj || {}).filter((k) => inRange(k, from, to)).sort();
+}
+// 时间段后缀文案，用于标题/文件名
+function rangeLabel(from, to) {
+  if (!from && !to) return "全部";
+  if (from && !to) return `${from}起`;
+  if (!from && to) return `${to}及之前`;
+  return `${from}至${to}`;
+}
+
 // ---------- 数据导出 ----------
 // 生活记录主题 → Markdown
-function exportLifeMarkdown() {
-  const L = [`# 生活记录导出 · ${todayStr()}\n`];
-  const ex = store.get(LS.ex, []).slice().reverse();
+function exportLifeMarkdown(from, to) {
+  const r = rangeLabel(from, to);
+  const L = [`# 生活记录导出 · ${r}\n`];
+  const ex = byRange(store.get(LS.ex, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   L.push(`## 🧘 运动打卡（${ex.length} 条）`);
   ex.forEach((e) => L.push(`- **${e.date} · ${e.type}**：${e.feeling || "（无感受）"}`));
-  const wt = store.get(LS.wt, []).slice().reverse();
+  const wt = byRange(store.get(LS.wt, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   L.push(`\n## ⚖️ 体重记录（${wt.length} 条）`);
-  wt.forEach((r) => L.push(`- ${r.date}：${r.kg} kg${r.note ? "（" + r.note + "）" : ""}`));
-  const st = store.get(LS.st, []).slice().reverse();
+  wt.forEach((w) => L.push(`- ${w.date}：${w.kg} kg${w.note ? "（" + w.note + "）" : ""}`));
+  const st = byRange(store.get(LS.st, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   L.push(`\n## 🔵 学习记录（${st.length} 条）`);
   st.forEach((s) => {
     const nm = s.name || s.subject || s.book || "（未命名）";
@@ -740,21 +831,22 @@ function exportLifeMarkdown() {
     L.push(`- **${s.date}**：${bits}${s.output ? "\n  - 输出：" + s.output : (s.feeling ? "\n  - " + s.feeling : "")}`);
   });
   const jr = store.get(LS.jr, {});
-  const jkeys = Object.keys(jr).sort();
+  const jkeys = keysInRange(jr, from, to);
   const JL = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["other", "其他"], ["words", "对自己说的话"]];
   L.push(`\n## 📔 日记（${jkeys.length} 天）`);
   jkeys.forEach((k) => {
     L.push(`\n### ${k}`);
     JL.forEach(([f, lab]) => { if (jr[k][f]) L.push(`- **${lab}**：${jr[k][f]}`); });
   });
-  downloadText(`生活记录_${todayStr()}.md`, L.join("\n"));
+  downloadText(`生活记录_${r}_${todayStr()}.md`, L.join("\n"));
   toast("已导出生活记录 ⬇️");
 }
 
 // 小满成长主题 → Markdown
-function exportXmMarkdown() {
-  const L = [`# 小满成长导出 · ${todayStr()}\n`];
-  const xm = store.get(LS.xm, []).slice().sort((a, b) => b.ts - a.ts);
+function exportXmMarkdown(from, to) {
+  const r = rangeLabel(from, to);
+  const L = [`# 小满成长导出 · ${r}\n`];
+  const xm = byRange(store.get(LS.xm, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   L.push(`## 📅 成长记录（${xm.length} 条）`);
   xm.forEach((x) => {
     const photos = x.photo ? (Array.isArray(x.photo) ? x.photo : [x.photo]) : [];
@@ -762,13 +854,13 @@ function exportXmMarkdown() {
     XM_FIELDS.forEach(([k, lab]) => { if (x[k]) L.push(`- **${lab}**：${x[k]}`); });
     if (x.words) L.push(`- **💌 To小满**：${x.words}`);
   });
-  const ms = store.get(LS.ms, []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+  const ms = byRange(store.get(LS.ms, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   L.push(`\n## 🌟 成长里程碑（${ms.length} 条）`);
   ms.forEach((m) => {
     const photos = m.photo ? (Array.isArray(m.photo) ? m.photo : [m.photo]) : [];
     L.push(`- **${m.date}**：${m.title}${m.desc ? "（" + m.desc + "）" : ""}${photos.length ? ` · 📷${photos.length}张` : ""}`);
   });
-  downloadText(`小满成长_${todayStr()}.md`, L.join("\n"));
+  downloadText(`小满成长_${r}_${todayStr()}.md`, L.join("\n"));
   toast("已导出小满数据 ⬇️");
 }
 
@@ -836,12 +928,13 @@ function esc(s) { return escapeHtml(String(s == null ? "" : s)); }
 function nl(s) { return esc(s).replace(/\n/g, "<br>"); }
 
 // 元气日常 → 图文版 HTML（按日期从早到晚）
-function exportLifeHtml() {
-  const ex = store.get(LS.ex, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const wt = store.get(LS.wt, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const st = store.get(LS.st, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+function exportLifeHtml(from, to) {
+  const r = rangeLabel(from, to);
+  const ex = byRange(store.get(LS.ex, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const wt = byRange(store.get(LS.wt, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const st = byRange(store.get(LS.st, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const jr = store.get(LS.jr, {});
-  const jkeys = Object.keys(jr).sort();
+  const jkeys = keysInRange(jr, from, to);
   const JL = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["other", "其他"], ["words", "对自己说的话"]];
 
   let b = `<h2>🧘 运动打卡（${ex.length}）</h2>`;
@@ -868,14 +961,15 @@ function exportLifeHtml() {
     ${JL.filter(([f]) => jr[k][f]).map(([f, lab]) => `<div class="sec"><span class="lab">${lab}</span>${nl(jr[k][f])}</div>`).join("")}
     ${photosHtml(jr[k].photo)}</div>`).join("") : '<div class="empty">暂无</div>';
 
-  downloadFile(`元气日常_图文版_${todayStr()}.html`, htmlShell("🍊 元气日常 · 图文回顾", b, `按时间从早到晚排列 · 导出于 ${todayStr()}`));
+  downloadFile(`元气日常_图文版_${r}_${todayStr()}.html`, htmlShell("🍊 元气日常 · 图文回顾", b, `时间段：${r} · 按时间从早到晚排列 · 导出于 ${todayStr()}`));
   toast("图文版已导出，打开后打印成 PDF 即可传飞书 ⬇️");
 }
 
 // 小满成长 → 图文版 HTML（按日期从早到晚）
-function exportXmHtml() {
-  const xm = store.get(LS.xm, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const ms = store.get(LS.ms, []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+function exportXmHtml(from, to) {
+  const r = rangeLabel(from, to);
+  const xm = byRange(store.get(LS.xm, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const ms = byRange(store.get(LS.ms, []), from, to).sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
   let b = `<h2>🌱 成长记录（${xm.length} 天）</h2>`;
   b += xm.length ? xm.map((x) => {
@@ -889,14 +983,18 @@ function exportXmHtml() {
     <div class="sec"><b>${esc(m.title)}</b>${m.desc ? "<br>" + nl(m.desc) : ""}</div>${photosHtml(m.photo)}</div>`).join("")
     : '<div class="empty">暂无</div>';
 
-  downloadFile(`小满成长_图文版_${todayStr()}.html`, htmlShell("👑 小满成长 · 图文回顾", b, `按时间从早到晚排列 · 导出于 ${todayStr()}`));
+  downloadFile(`小满成长_图文版_${r}_${todayStr()}.html`, htmlShell("👑 小满成长 · 图文回顾", b, `时间段：${r} · 按时间从早到晚排列 · 导出于 ${todayStr()}`));
   toast("图文版已导出，打开后打印成 PDF 即可传飞书 ⬇️");
 }
 
-$("#btnExportLife").addEventListener("click", exportLifeMarkdown);
-$("#btnExportXm").addEventListener("click", exportXmMarkdown);
-$("#btnExportLifeHtml")?.addEventListener("click", exportLifeHtml);
-$("#btnExportXmHtml")?.addEventListener("click", exportXmHtml);
+$("#btnExportLife").addEventListener("click", () =>
+  openRangeExport("导出生活记录 · 选择时间段", (f, t) => exportLifeMarkdown(f, t)));
+$("#btnExportXm").addEventListener("click", () =>
+  openRangeExport("导出小满数据 · 选择时间段", (f, t) => exportXmMarkdown(f, t)));
+$("#btnExportLifeHtml")?.addEventListener("click", () =>
+  openRangeExport("导出图文版 · 选择时间段", (f, t) => exportLifeHtml(f, t)));
+$("#btnExportXmHtml")?.addEventListener("click", () =>
+  openRangeExport("导出图文版 · 选择时间段", (f, t) => exportXmHtml(f, t)));
 $("#btnBackupAll").addEventListener("click", exportAllJson);
 
 // 初始化

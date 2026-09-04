@@ -378,6 +378,9 @@ body {
 .scb-title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .sync-code-box textarea { width: 100%; font-size: 11px; font-family: ui-monospace, Consolas, monospace; resize: vertical; }
 .scb-acts { margin-top: 8px; display: flex; gap: 8px; }
+.er-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.er-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.er-row .lf-row { flex: 1; min-width: 140px; }
 .date-pick-bottom { margin-top: 18px; }
 
 .btn {
