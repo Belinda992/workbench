@@ -1377,8 +1377,25 @@ function renderAssist() {
 function getMsgs() { return store.get(ASSIST_KEY, []); }
 function setMsgs(v) { store.set(ASSIST_KEY, v); }
 
-// ---------- 梦想清单（紫） ----------
+// ---------- 梦想清单（紫） · 可视化 + 达成纪念 ----------
 const DREAM_KEY = "wb_dreams";
+let dreamPhotoData = null;      // 许愿时的「梦想画面」
+let ddPhotoData = [];           // 达成时的「实现照片」
+let ddTargetId = null;          // 正在记录达成的梦想 id
+
+const DREAM_ICONS = { "想做的事": "🎈", "想去的地方": "🗺", "想学的本事": "🎓", "想成为的样子": "🦋", "其他": "✨" };
+
+// 许愿表单：梦想画面
+$("#dreamPhoto")?.addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  dreamPhotoData = await fileToDataURL(f, 1200, 0.75);
+  const box = $("#dreamPhotoPrev");
+  if (box) box.innerHTML = `<div class="pp-wrap"><img class="pp-img" src="${dreamPhotoData}" alt="梦想画面"/><button class="pp-del" type="button" title="移除">✕</button></div>`;
+  const del = box && box.querySelector(".pp-del");
+  if (del) del.addEventListener("click", () => { dreamPhotoData = null; box.innerHTML = ""; $("#dreamPhoto").value = ""; });
+});
+
 $("#dreamForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
   const title = $("#dreamTitle").value.trim();
@@ -1388,51 +1405,195 @@ $("#dreamForm")?.addEventListener("submit", (e) => {
     id: Date.now(), title,
     cat: $("#dreamCat").value,
     date: $("#dreamDate").value,
+    note: ($("#dreamNote")?.value || "").trim(),
+    photo: dreamPhotoData,
     done: false,
+    madeAt: todoToday(),
     t: new Date().toLocaleDateString("zh-CN"),
   });
   store.set(DREAM_KEY, list);
   $("#dreamTitle").value = ""; $("#dreamDate").value = "";
+  const nt = $("#dreamNote"); if (nt) nt.value = "";
+  dreamPhotoData = null;
+  const pv = $("#dreamPhotoPrev"); if (pv) pv.innerHTML = "";
+  $("#dreamPhoto").value = "";
   renderDream();
   toast("心愿已许下 🌟");
 });
 
-function renderDream() {
-  const box = $("#dreamList"); if (!box) return;
-  const list = store.get(DREAM_KEY, []);
-  const done = list.filter((d) => d.done).length;
-  $("#dreamCount").textContent = list.length ? `${list.length} 个 · 已实现 ${done} 个` : "";
-  if (!list.length) { box.innerHTML = `<div class="assist-empty">清单还是空的。写下第一个梦想，它就在路上了 ✨</div>`; return; }
-  box.innerHTML = list.map((d) => `
-    <div class="dream-item ${d.done ? "done" : ""}" data-id="${d.id}">
-      <button class="dream-star" title="点击切换已实现">${d.done ? "🌟" : "💫"}</button>
-      <div class="dream-body">
-        <div class="dream-text">${escH(d.title)}</div>
-        <div class="dream-meta">🏷 ${escH(d.cat)}${d.date ? ` · 🎯 ${escH(d.date)}` : ""} · 许于 ${escH(d.t)}</div>
-      </div>
-      <div class="dream-actions">
-        <button class="dream-btn" data-act="done">${d.done ? "还没实现" : "已实现"}</button>
-        <button class="dream-btn" data-act="del">删除</button>
-      </div>
-    </div>`).join("");
-  $$("#dreamList .dream-item").forEach((el) => {
-    const id = Number(el.dataset.id);
-    el.querySelector(".dream-star").addEventListener("click", () => toggleDream(id));
-    el.querySelector('[data-act="done"]').addEventListener("click", () => toggleDream(id));
-    el.querySelector('[data-act="del"]').addEventListener("click", () => {
-      store.set(DREAM_KEY, store.get(DREAM_KEY, []).filter((x) => x.id !== id));
-      renderDream(); toast("已删除");
-    });
-  });
+// 达成弹窗：照片多选
+$("#ddPhotos")?.addEventListener("change", async (e) => {
+  for (const f of Array.from(e.target.files || [])) ddPhotoData.push(await fileToDataURL(f, 1200, 0.75));
+  renderDdPreviews();
+  e.target.value = "";
+});
+function renderDdPreviews() {
+  const box = $("#ddPrev"); if (!box) return;
+  box.innerHTML = ddPhotoData.map((p, i) =>
+    `<div class="pp-wrap"><img class="pp-img" src="${p}" alt="实现照片"/><button class="pp-del" type="button" data-i="${i}" title="移除">✕</button></div>`).join("");
+  box.querySelectorAll(".pp-del").forEach((b) =>
+    b.addEventListener("click", () => { ddPhotoData.splice(+b.dataset.i, 1); renderDdPreviews(); })
+  );
 }
-function toggleDream(id) {
-  const list = store.get(DREAM_KEY, []);
-  const it = list.find((x) => x.id === id);
+
+function openDreamDone(id) {
+  const it = store.get(DREAM_KEY, []).find((x) => x.id === id);
   if (!it) return;
-  it.done = !it.done;
+  ddTargetId = id;
+  ddPhotoData = [];
+  const t = $("#ddTitle"); if (t) t.textContent = `🏆 ${it.title}`;
+  const d = $("#ddDate"); if (d) d.value = todoToday();
+  const n = $("#ddNote"); if (n) n.value = "";
+  renderDdPreviews();
+  const m = $("#dreamDoneModal"); if (m) m.style.display = "flex";
+}
+function closeDreamDone() {
+  const m = $("#dreamDoneModal"); if (m) m.style.display = "none";
+  ddTargetId = null; ddPhotoData = [];
+}
+$("#ddCancel")?.addEventListener("click", closeDreamDone);
+$("#ddSave")?.addEventListener("click", () => {
+  if (ddTargetId == null) return;
+  const list = store.get(DREAM_KEY, []);
+  const it = list.find((x) => x.id === ddTargetId);
+  if (!it) { closeDreamDone(); return; }
+  it.done = true;
+  it.doneDate = ($("#ddDate")?.value || "").trim() || todoToday();
+  it.doneNote = ($("#ddNote")?.value || "").trim();
+  it.donePhotos = ddPhotoData.slice();
   store.set(DREAM_KEY, list);
-  if (it.done) toast("恭喜！梦想实现啦 🎉");
+  closeDreamDone();
   renderDream();
+  toast("恭喜！梦想实现啦 🎉 已存入「已实现」");
+});
+
+function daysBetween(a, b) {
+  const pa = String(a || "").split("-").map(Number);
+  const pb = String(b || "").split("-").map(Number);
+  if (pa.length < 3 || pb.length < 3) return null;
+  const da = new Date(pa[0], pa[1] - 1, pa[2]), db = new Date(pb[0], pb[1] - 1, pb[2]);
+  return Math.round((db - da) / 86400000);
+}
+
+function renderDream() {
+  const box = $("#dreamList"), doneBox = $("#dreamDoneList");
+  const list = store.get(DREAM_KEY, []);
+  const going = list.filter((d) => !d.done);
+  const done = list.filter((d) => d.done).sort((a, b) => String(b.doneDate || "").localeCompare(String(a.doneDate || "")));
+
+  const ce = $("#dreamCount"); if (ce) ce.textContent = going.length ? `${going.length} 个` : "";
+  const de = $("#dreamDoneCount"); if (de) de.textContent = done.length ? `${done.length} 个` : "";
+
+  // 顶部统计
+  const st = $("#dreamStats");
+  if (st) {
+    const rate = list.length ? Math.round((done.length / list.length) * 100) : 0;
+    st.innerHTML = `
+      <div class="ds-item"><div class="ds-num">${list.length}</div><div class="ds-lab">许下的心愿</div></div>
+      <div class="ds-item"><div class="ds-num">${going.length}</div><div class="ds-lab">正在路上</div></div>
+      <div class="ds-item hi"><div class="ds-num">${done.length}</div><div class="ds-lab">已经实现</div></div>
+      <div class="ds-item"><div class="ds-num">${rate}%</div><div class="ds-lab">实现率</div></div>`;
+  }
+
+  // 正在路上：可视化卡片墙
+  if (box) {
+    if (!going.length) { box.innerHTML = `<div class="assist-empty">清单还是空的。写下第一个梦想，配上一张画面，它就在路上了 ✨</div>`; }
+    else {
+      box.innerHTML = going.map((d) => {
+        const ico = DREAM_ICONS[d.cat] || "✨";
+        const cover = d.photo
+          ? `<img class="dc-cover" src="${d.photo}" alt="${escH(d.title)}"/>`
+          : `<div class="dc-cover ph-empty"><span>${ico}</span></div>`;
+        const days = daysBetween(d.madeAt || d.t, todoToday());
+        const left = d.date ? daysBetween(todoToday(), d.date) : null;
+        const leftTxt = left === null ? "" : (left >= 0 ? `还有 ${left} 天` : `已超出 ${Math.abs(left)} 天`);
+        return `<div class="dream-card" data-id="${d.id}">
+          ${cover}
+          <div class="dc-body">
+            <div class="dc-title">${escH(d.title)}</div>
+            <div class="dc-meta">${ico} ${escH(d.cat)}${d.date ? ` · 🎯 ${escH(d.date)}` : ""}</div>
+            ${d.note ? `<div class="dc-note">${escH(d.note)}</div>` : ""}
+            <div class="dc-foot">
+              <span class="dc-days">已许 ${days === null ? "—" : Math.max(days, 0)} 天${leftTxt ? " · " + leftTxt : ""}</span>
+            </div>
+          </div>
+          <div class="dc-acts">
+            <button class="dream-btn ok" data-act="done">✓ 实现了</button>
+            <button class="dream-btn" data-act="del">删除</button>
+          </div>
+        </div>`;
+      }).join("");
+      $$("#dreamList .dream-card").forEach((el) => {
+        const id = Number(el.dataset.id);
+        el.querySelector('[data-act="done"]').addEventListener("click", () => openDreamDone(id));
+        el.querySelector('[data-act="del"]').addEventListener("click", () => {
+          store.set(DREAM_KEY, store.get(DREAM_KEY, []).filter((x) => x.id !== id));
+          renderDream(); toast("已删除");
+        });
+        const img = el.querySelector(".dc-cover");
+        if (img && img.tagName === "IMG") img.addEventListener("click", () => openLightbox(img.src));
+      });
+    }
+  }
+
+  // 已实现：成就纪念册
+  if (doneBox) {
+    if (!done.length) { doneBox.innerHTML = `<div class="assist-empty">还没有实现的梦想。每实现一个，回来记一笔 🏆</div>`; }
+    else {
+      doneBox.innerHTML = done.map((d) => {
+        const ico = DREAM_ICONS[d.cat] || "✨";
+        const photos = d.donePhotos || (d.photo ? [d.photo] : []);
+        const used = daysBetween(d.madeAt || d.t, d.doneDate);
+        return `<div class="dd-item" data-id="${d.id}">
+          <div class="dd-badge">🏆</div>
+          <div class="dd-main">
+            <div class="dd-head">
+              <span class="dd-date">${escH(d.doneDate || "—")}</span>
+              <span class="dd-cat">${ico} ${escH(d.cat)}</span>
+              ${used !== null ? `<span class="dd-used">历时 ${Math.max(used, 0)} 天</span>` : ""}
+            </div>
+            <div class="dd-title">${escH(d.title)}</div>
+            ${d.doneNote ? `<div class="dd-note">${escH(d.doneNote)}</div>` : ""}
+            ${photos.length ? `<div class="dd-photos">${photos.map((p) => `<img src="${p}" alt="实现照片"/>`).join("")}</div>` : ""}
+          </div>
+          <div class="dd-acts">
+            <button class="dream-btn" data-act="undo">撤销实现</button>
+            <button class="dream-btn" data-act="del">删除</button>
+          </div>
+        </div>`;
+      }).join("");
+      $$("#dreamDoneList .dd-item").forEach((el) => {
+        const id = Number(el.dataset.id);
+        el.querySelector('[data-act="del"]').addEventListener("click", () => {
+          store.set(DREAM_KEY, store.get(DREAM_KEY, []).filter((x) => x.id !== id));
+          renderDream(); toast("已删除");
+        });
+        el.querySelector('[data-act="undo"]').addEventListener("click", () => {
+          const list2 = store.get(DREAM_KEY, []);
+          const it = list2.find((x) => x.id === id);
+          if (it) { it.done = false; delete it.doneDate; delete it.doneNote; delete it.donePhotos; }
+          store.set(DREAM_KEY, list2);
+          renderDream(); toast("已放回「正在路上」");
+        });
+        el.querySelectorAll(".dd-photos img").forEach((im) => im.addEventListener("click", () => openLightbox(im.src)));
+      });
+    }
+  }
+}
+
+// 看大图
+function openLightbox(src) {
+  let lb = $("#lightbox");
+  if (!lb) {
+    lb = document.createElement("div");
+    lb.id = "lightbox";
+    lb.className = "lightbox";
+    lb.innerHTML = `<img alt="大图"/>`;
+    lb.addEventListener("click", () => lb.classList.remove("on"));
+    document.body.appendChild(lb);
+  }
+  lb.querySelector("img").src = src;
+  lb.classList.add("on");
 }
 
 renderAssist();

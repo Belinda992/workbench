@@ -769,22 +769,37 @@
         <!-- 梦想清单（紫） -->
         <div class="view" id="view-dream">
           <h2 class="view-title c-purple">🫧 梦想清单</h2>
-          
+
+          <div class="dream-stats" id="dreamStats"></div>
+
           <div class="card">
             <div class="card-head">➕ 许一个心愿</div>
-            <form id="dreamForm" class="life-form inline">
+            <form id="dreamForm" class="life-form">
               <div class="lf-row"><label>梦想</label><input id="dreamTitle" placeholder="如：带小满去看海" autocomplete="off" /></div>
-              <div class="lf-row"><label>分类</label>
-                <select id="dreamCat"><option>想做的事</option><option>想去的地方</option><option>想学的本事</option><option>想成为的样子</option><option>其他</option></select>
+              <div class="er-row">
+                <div class="lf-row"><label>分类</label>
+                  <select id="dreamCat"><option>想做的事</option><option>想去的地方</option><option>想学的本事</option><option>想成为的样子</option><option>其他</option></select>
+                </div>
+                <div class="lf-row"><label>希望实现时间</label><input id="dreamDate" type="date" /></div>
               </div>
-              <div class="lf-row"><label>希望实现时间</label><input id="dreamDate" type="date" /></div>
+              <div class="lf-row"><label>为什么想要（可选）</label><textarea id="dreamNote" placeholder="写一句给未来的自己…"></textarea></div>
+              <div class="lf-row">
+                <label>梦想画面（可选，越具体越容易实现）</label>
+                <input type="file" id="dreamPhoto" accept="image/*" />
+                <div id="dreamPhotoPrev" class="photo-prevs"></div>
+              </div>
               <button type="submit" class="btn">许下 🌟</button>
             </form>
           </div>
 
           <div class="card" style="margin-top:16px;">
-            <div class="card-head">🌟 我的梦想 <span class="muted" id="dreamCount"></span></div>
-            <div id="dreamList" class="entry-list"></div>
+            <div class="card-head">🌟 正在路上 <span class="muted" id="dreamCount"></span></div>
+            <div id="dreamList" class="dream-grid"></div>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <div class="card-head">🎉 已实现 <span class="muted" id="dreamDoneCount"></span></div>
+            <div id="dreamDoneList" class="dream-done-list"></div>
           </div>
         </div>
       </section>
@@ -820,6 +835,27 @@
         <button class="btn ghost" id="syncCancel">取消</button>
         <button class="btn ghost" id="btnShowSyncCode" type="button">显示同步码</button>
         <button class="btn" id="syncSubmit">连接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 梦想达成记录弹窗 -->
+  <div class="modal" id="dreamDoneModal" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-title">🎉 记录这个高光时刻</div>
+      <p class="muted" id="ddTitle"></p>
+      <div class="er-row">
+        <div class="lf-row"><label>实现日期</label><input type="date" id="ddDate" /></div>
+      </div>
+      <div class="lf-row"><label>达成感言</label><textarea id="ddNote" placeholder="那一刻是什么感觉？为了它你做过些什么？"></textarea></div>
+      <div class="lf-row">
+        <label>实现照片（可多张）</label>
+        <input type="file" id="ddPhotos" accept="image/*" multiple />
+        <div id="ddPrev" class="photo-prevs"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="ddCancel">取消</button>
+        <button class="btn" id="ddSave">记下这一刻 🎉</button>
       </div>
     </div>
   </div>
