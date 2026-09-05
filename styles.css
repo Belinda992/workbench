@@ -735,7 +735,9 @@ body {
   line-height: 1.6; outline: none; color: var(--text); background: #fff;
 }
 .assist-input:focus { border-color: var(--c-indigo); }
-.assist-actions { display: flex; gap: 10px; margin-top: 12px; }
+.assist-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.gen-box { margin-top: 4px; border-top: 1px dashed var(--line); padding-top: 12px; }
+.assist-chip.gen { border-style: dashed; font-weight: 600; }
 .assist-log { display: flex; flex-direction: column; gap: 12px; }
 .assist-item { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
 .assist-q { font-size: 13.5px; line-height: 1.6; margin-bottom: 8px; white-space: pre-wrap; word-break: break-word; }

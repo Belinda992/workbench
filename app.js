@@ -1156,7 +1156,8 @@ $("#importSubmit")?.addEventListener("click", doImport);
 const ASSIST_KEY = "wb_assistant_msgs";
 const escH = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-$$(".assist-chip").forEach((c) =>
+// 只在「常用指令」上绑定，避免误伤一键生成按钮
+$$(".assist-chip[data-tpl]").forEach((c) =>
   c.addEventListener("click", () => { $("#assistInput").value = c.dataset.tpl; $("#assistInput").focus(); })
 );
 
@@ -1178,6 +1179,170 @@ $("#btnAssistSave")?.addEventListener("click", () => {
   $("#assistInput").value = "";
   renderAssist();
   toast("已存入对话记录 💾");
+});
+
+// ============ 一键生成（直接读本地真实数据，不用联网） ============
+const LIFE_KEYS = { ex: "wb_life_exercise", wt: "wb_life_weight", st: "wb_life_study", jr: "wb_life_journal", xm: "wb_life_xiaoman", ms: "wb_life_milestone" };
+const JR_LABELS = [["special", "星星口袋"], ["ach", "成就"], ["grat", "感恩"], ["ref", "反思"], ["other", "其他"]];
+const XM_LABELS = [["kg", "幼儿园课程"], ["yuwen", "语文"], ["math", "数学"], ["english", "英语"], ["sport", "运动"], ["art", "艺术"], ["special", "特别记录"]];
+
+function tlIconSafe(k) { try { return (iconOf(k) || {}).icon || "•"; } catch (_) { return "•"; } }
+function dateList(from, to) {
+  const out = [];
+  let d = from;
+  while (d <= to) { out.push(d); d = todoShift(d, 1); }
+  return out;
+}
+
+// 今日总结
+function genToday() {
+  const d = todoToday();
+  const frogs = frogsOf(d), todos = todosOf(d);
+  const L = [`【今日总结 · ${d}】`, ""];
+  const df = frogs.filter((f) => f.done);
+  L.push(`🐸 三只青蛙（${df.length}/${frogs.length}）`);
+  if (frogs.length) frogs.forEach((f) => L.push(`   ${f.done ? "✓" : "○"} ${f.text}`));
+  else L.push("   （今天还没排青蛙）");
+  L.push("");
+  const dt = todos.filter((t) => t.done);
+  L.push(`📝 其他待办（${dt.length}/${todos.length}）`);
+  if (todos.length) todos.forEach((t) => L.push(`   ${t.done ? "✓" : "○"} ${t.text}`));
+  else L.push("   （没有待办）");
+
+  const tl = loadTl(d);
+  const slots = Object.keys(tl).filter((k) => tl[k] && String(tl[k].text || "").trim()).sort();
+  if (slots.length) {
+    L.push("", "🕐 时间轴");
+    slots.forEach((k) => L.push(`   ${k} ${tlIconSafe(tl[k].icon)} ${tl[k].text}`));
+  }
+  const six = loadSixData(d);
+  if (six.seeds.some((s) => s)) {
+    L.push("", "🪷 六时书");
+    six.seeds.forEach((s, i) => { if (s) L.push(`   ${TL_BIG_SEEDS[i].name} · ${s}${six.notes[i] ? " — " + six.notes[i] : ""}`); });
+  }
+  const ex = (store.get(LIFE_KEYS.ex, []) || []).filter((e) => e.date === d);
+  if (ex.length) L.push("", "🧘 运动：" + ex.map((e) => e.type).join("、"));
+  const wt = (store.get(LIFE_KEYS.wt, []) || []).filter((r) => r.date === d);
+  if (wt.length) L.push(`⚖️ 体重：${wt.map((r) => r.kg + "kg").join("、")}`);
+  const st = (store.get(LIFE_KEYS.st, []) || []).filter((s) => s.date === d);
+  if (st.length) {
+    L.push("", "🔵 学习");
+    st.forEach((s) => {
+      const nm = s.name || s.subject || s.book || "（未命名）";
+      L.push(`   ${s.topic ? "【" + s.topic + "】" : ""}${nm}${s.range ? " · " + s.range : ""}`);
+      if (s.output) L.push(`      输出：${s.output}`);
+    });
+  }
+  const jr = store.get(LIFE_KEYS.jr, {})[d];
+  if (jr) {
+    const lines = JR_LABELS.filter(([f]) => jr[f]).map(([f, lab]) => `   ${lab}：${jr[f]}`);
+    if (lines.length) { L.push("", "📔 日记"); L.push(...lines); }
+  }
+  const xm = (store.get(LIFE_KEYS.xm, []) || []).filter((x) => x.date === d);
+  if (xm.length) {
+    L.push("", "👧 小满");
+    xm.forEach((x) => XM_LABELS.filter(([k]) => x[k]).forEach(([k, lab]) => L.push(`   ${lab}：${x[k]}`)));
+  }
+  return L.join("\n");
+}
+
+// 本周回顾（最近 7 天）
+function genWeek() {
+  const end = todoToday(), start = todoShift(end, -6);
+  const days = dateList(start, end);
+  const L = [`【本周回顾 · ${start} ~ ${end}】`, ""];
+  let fAll = 0, fDone = 0, tAll = 0, tDone = 0, activeDays = 0;
+  days.forEach((d) => {
+    const f = frogsOf(d), t = todosOf(d);
+    const fd = f.filter((x) => x.done).length, td = t.filter((x) => x.done).length;
+    fAll += f.length; fDone += fd; tAll += t.length; tDone += td;
+    if (f.length || t.length) activeDays++;
+  });
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0) + "%";
+  L.push(`🐸 青蛙完成 ${fDone}/${fAll}（${pct(fDone, fAll)}）`);
+  L.push(`📝 待办完成 ${tDone}/${tAll}（${pct(tDone, tAll)}）`);
+  L.push(`📅 有安排的天数：${activeDays} / 7 天`);
+
+  const ex = (store.get(LIFE_KEYS.ex, []) || []).filter((e) => e.date >= start && e.date <= end);
+  if (ex.length) {
+    const byType = {};
+    ex.forEach((e) => { byType[e.type] = (byType[e.type] || 0) + 1; });
+    L.push("", `🧘 运动 ${ex.length} 次：` + Object.entries(byType).map(([k, v]) => `${k} ${v}次`).join("、"));
+  } else L.push("", "🧘 运动：本周还没打卡");
+
+  const st = (store.get(LIFE_KEYS.st, []) || []).filter((s) => s.date >= start && s.date <= end);
+  if (st.length) {
+    L.push("", `🔵 学习 ${st.length} 条`);
+    const byTopic = {};
+    st.forEach((s) => { const k = s.topic || "未分类"; byTopic[k] = (byTopic[k] || 0) + 1; });
+    L.push("   " + Object.entries(byTopic).map(([k, v]) => `${k} ${v}条`).join("、"));
+    st.forEach((s) => L.push(`   · ${s.date} ${s.name || s.subject || s.book || ""}${s.range ? " · " + s.range : ""}`));
+  } else L.push("", "🔵 学习：本周还没有记录");
+
+  const wt = (store.get(LIFE_KEYS.wt, []) || []).filter((r) => r.date >= start && r.date <= end).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (wt.length) L.push("", `⚖️ 体重 ${wt.length} 次记录：${wt.map((r) => r.kg).join(" → ")} kg`);
+
+  const jr = store.get(LIFE_KEYS.jr, {});
+  const jd = Object.keys(jr).filter((k) => k >= start && k <= end).sort();
+  L.push("", `📔 日记写了 ${jd.length} 天`);
+  const xm = (store.get(LIFE_KEYS.xm, []) || []).filter((x) => x.date >= start && x.date <= end);
+  L.push(`👧 小满记录了 ${xm.length} 天`);
+  return L.join("\n");
+}
+
+// 小满周报
+function genXiaomanWeek() {
+  const end = todoToday(), start = todoShift(end, -6);
+  const xm = (store.get(LIFE_KEYS.xm, []) || []).filter((x) => x.date >= start && x.date <= end).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const ms = (store.get(LIFE_KEYS.ms, []) || []).filter((m) => m.date >= start && m.date <= end).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const L = [`【小满周报 · ${start} ~ ${end}】`, ""];
+  if (!xm.length) { L.push("这一周还没有小满的成长记录。"); return L.join("\n"); }
+  L.push(`共记录了 ${xm.length} 天：` + xm.map((x) => x.date.slice(5)).join("、"));
+  L.push("");
+  xm.forEach((x) => {
+    L.push(`■ ${x.date}`);
+    const rows = XM_LABELS.filter(([k]) => x[k]).map(([k, lab]) => `   ${lab}：${x[k]}`);
+    if (rows.length) L.push(...rows); else L.push("   （这天只存了照片或 To小满）");
+    if (x.photo) L.push(`   📷 ${(Array.isArray(x.photo) ? x.photo : [x.photo]).length} 张照片`);
+    if (x.words) L.push(`   💌 To小满：${x.words}`);
+    L.push("");
+  });
+  if (ms.length) { L.push("🌟 本周里程碑"); ms.forEach((m) => L.push(`   ${m.date} ${m.title}${m.desc ? "（" + m.desc + "）" : ""}`)); }
+  return L.join("\n").trim();
+}
+
+$$(".assist-chip.gen").forEach((b) =>
+  b.addEventListener("click", () => {
+    const kind = b.dataset.gen;
+    let txt = "";
+    if (kind === "today") txt = genToday();
+    else if (kind === "week") txt = genWeek();
+    else txt = genXiaomanWeek();
+    const box = $("#genBox"), ta = $("#genOut");
+    if (!box || !ta) return;
+    ta.value = txt;
+    box.style.display = "block";
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    toast("已生成 ✅");
+  })
+);
+
+$("#btnGenCopy")?.addEventListener("click", async () => {
+  const txt = ($("#genOut")?.value || "").trim();
+  if (!txt) { toast("先点上面的按钮生成内容"); return; }
+  try { await navigator.clipboard.writeText(txt); toast("已复制，可直接粘贴到飞书 📋"); }
+  catch (_) { const ta = $("#genOut"); ta.select(); document.execCommand("copy"); toast("已复制 📋"); }
+});
+
+$("#btnGenToJournal")?.addEventListener("click", () => {
+  const txt = ($("#genOut")?.value || "").trim();
+  if (!txt) { toast("先生成内容再保存哦"); return; }
+  const d = todoToday();
+  const jr = store.get(LIFE_KEYS.jr, {});
+  jr[d] = Object.assign({}, jr[d], { special: (jr[d] && jr[d].special ? jr[d].special + "\n\n" : "") + txt });
+  store.set(LIFE_KEYS.jr, jr);
+  if (window.loadJournal) loadJournal();
+  toast("已存入今日日记的「星星口袋」💾");
 });
 
 function renderAssist() {

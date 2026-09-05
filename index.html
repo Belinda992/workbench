@@ -730,7 +730,23 @@
           <h2 class="view-title c-indigo">💬 映记助手</h2>
           
           <div class="card">
-            <div class="card-head">✨ 常用指令 <span class="muted">点击填入</span></div>
+            <div class="card-head">⚡ 一键生成</div>
+            <div class="assist-chips">
+              <button type="button" class="assist-chip gen" data-gen="today">📝 今日总结</button>
+              <button type="button" class="assist-chip gen" data-gen="week">📊 本周回顾</button>
+              <button type="button" class="assist-chip gen" data-gen="xiaoman">👧 小满周报</button>
+            </div>
+            <div id="genBox" class="gen-box" style="display:none">
+              <textarea id="genOut" class="assist-input" rows="12"></textarea>
+              <div class="assist-actions">
+                <button class="btn" id="btnGenCopy">📋 复制</button>
+                <button class="btn ghost" id="btnGenToJournal">💾 存入今日日记</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">✨ 常用指令</div>
             <div class="assist-chips">
               <button type="button" class="assist-chip" data-tpl="帮我写一条关于古诗文记忆法的小红书文案，标题要有钩子，正文300字左右。">小红书文案</button>
               <button type="button" class="assist-chip" data-tpl="帮我规划本周的工作重点，按「重要且紧急 / 重要不紧急」分类列出。">本周规划</button>
